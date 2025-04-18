@@ -1,0 +1,99 @@
+text
+
+Copy
+Create a Replit project for a mobile app called PokerEscrow, designed to simplify poker game payouts using blockchain, with an investment feature for non-crypto users to earn interest on funds after cashing out. The app allows players to deposit USDC into an escrow account, submit chip counts to cash out, get approval from players and a banker, and receive payouts. After cashing out, users can invest funds in Aave (on Base) to earn ~5% APY. Use React Native for the frontend (iOS/Android), Node.js with Express and MongoDB for the backend, and a Solidity smart contract on the Base network. Integrate Coinbase Wallet SDK for wallet creation/login and Coinbase Onramp for fiat deposits. Ensure minimal errors by following best practices for Replit’s AI Agent and Assistant, including clear file context, error handling, and rollback checkpoints.
+
+Steps:
+1. **Project Setup**:
+   - Initialize a Replit project with Node.js, React Native, and Hardhat for Solidity.
+   - Create folders: `frontend` (React Native), `backend` (Node.js/Express), `contracts` (Solidity/Hardhat).
+   - Install dependencies:
+     - Frontend: `@coinbase/wallet-sdk`, `@coinbase/onramp-sdk`, `web3`, `react-navigation`, `react-native-onboarding-swiper`.
+     - Backend: `express`, `mongodb`, `cors`, `dotenv`.
+     - Contracts: `hardhat`, `@openzeppelin/contracts`, `@aave/core-v3`.
+   - Configure `.replit` and `replit.nix` for React Native and Hardhat compatibility.
+   - Set up environment variables in Replit’s Secrets tab: `ALCHEMY_API_KEY`, `MONGODB_URI`, `COINBASE_APP_ID`, `COINBASE_ONRAMP_APP_ID`, `ADMIN_WALLET_PRIVATE_KEY`.
+
+2. **React Native Frontend**:
+   - Create 6 screens with React Navigation:
+     - **Onboarding**: 5-slide carousel (welcome, connect, join, cash out, earn interest) using `react-native-onboarding-swiper`.
+     - **Login**: Connect with Coinbase Wallet SDK (email or Coinbase account).
+     - **Game Setup**: Host creates game, players deposit USDC via Coinbase Onramp.
+     - **Cash Out**: Submit chip count (numeric input in dollars).
+     - **Approval**: Approve/dispute chip count with Yes/No buttons.
+     - **Investment**: Modal to invest cash-out funds in Aave or keep idle.
+   - Use simple, non-technical UI labels (e.g., “Pay to join,” “Earn interest”).
+   - Add error handling for network issues and invalid inputs (e.g., non-numeric chip counts).
+   - Include a dashboard showing invested funds and interest earned (e.g., “Invested: $50, Interest: $1.20”).
+
+3. **Node.js/Express Backend**:
+   - Set up Express server with MongoDB to store:
+     - Game data (game ID, players, chip counts).
+     - Investment data (user address, invested amount, timestamp).
+   - Create 4 API endpoints:
+     - `POST /game`: Create game with players and buy-in.
+     - `POST /game/:id/cashout`: Submit chip count.
+     - `POST /game/:id/approve`: Record approval/dispute.
+     - `POST /invest`: Log investment in Aave.
+   - Use MongoDB schema validation to prevent data errors.
+   - Add error handling for database connection failures and invalid requests.
+
+4. **Solidity Smart Contract**:
+   - Create `PokerEscrow.sol` for the Base network with:
+     - USDC deposit into escrow.
+     - Chip count submission and approval logic.
+     - Payout distribution.
+     - Aave integration (deposit/withdraw USDC to/from lending pool).
+   - Use `@openzeppelin/contracts` for secure token handling.
+   - Include events for debugging (e.g., `Deposit`, `CashOutSubmitted`, `Invested`).
+   - Add error checks (e.g., `require(deposits[msg.sender] > 0, "Not a player")`).
+
+5. **Coinbase Wallet SDK and Onramp**:
+   - Integrate Coinbase Wallet SDK for login and transaction signing.
+   - Use Coinbase Onramp for fiat-to-USDC deposits (credit card/Apple Pay).
+   - Implement gas fee abstraction using an admin wallet to cover Base network fees.
+
+6. **Aave Integration**:
+   - Connect smart contract to Aave’s lending pool on Base.
+   - Allow users to deposit USDC to Aave after cash-out and withdraw with interest.
+   - Display estimated APY (~5%) in the Investment modal.
+
+7. **Error Minimization**:
+   - **Prompt Clarity**: Specify file context (e.g., “Modify frontend/GameSetupScreen.js for deposits”).
+   - **Single Feature per Prompt**: Add one feature at a time (e.g., “Add Investment modal”).
+   - **Error Handling**: Include try-catch in frontend/backend and require statements in Solidity.
+   - **Checkpoints**: Create Replit checkpoints after each major feature (e.g., “Login complete”).
+   - **Rollback**: Use Replit’s rollback feature if AI introduces errors.
+   - **Debugging**: Enable Replit Assistant’s “Debug with AI” for squiggly underlines.
+   - **Testing**: Write unit tests for backend APIs and smart contract functions.
+   - **Logging**: Add console logs for frontend actions and backend errors.
+
+8. **Deployment**:
+   - Deploy smart contract to Base Sepolia testnet using Hardhat.
+   - Test frontend in Replit’s mobile preview.
+   - Ensure backend runs on port 3000 with health checks (<5s response).
+
+Deliverables:
+- Replit project with `frontend`, `backend`, `contracts` folders.
+- React Native app with 6 screens, navigation, and onboarding.
+- Express backend with 4 API endpoints and MongoDB schemas.
+- Solidity contract with escrow, approval, and Aave functions.
+- Coinbase Wallet SDK and Onramp integration.
+- Aave integration for investment feature.
+- Unit tests for backend and smart contract.
+- README with:
+  - Setup instructions (e.g., `npm install`, `npx hardhat compile`).
+  - Environment variable setup.
+  - Steps to run frontend (`npm start`), backend (`node index.js`), and deploy contract (`npx hardhat run scripts/deploy.js --network base-sepolia`).
+  - Testing instructions (e.g., use Base Sepolia faucet for USDC).
+
+Best Practices to Minimize Errors:
+- Be specific: E.g., “Add Aave deposit to contracts/PokerEscrow.sol, don’t modify frontend.”
+- Use Replit Assistant to fix syntax errors before running.
+- Commit changes to Git after each feature (use Replit’s Git integration).
+- Fork the project before major changes (Replit remix).
+- Test incrementally: Run frontend after each screen, backend after each endpoint.
+- If Replit Agent fails, rollback and rephrase prompt with more details.
+- Use Replit’s console to check logs and errors.
+
+Focus on simplicity, clear comments, and a user-friendly MVP for non-crypto users. Avoid co

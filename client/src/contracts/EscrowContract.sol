@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@aave/core-v3/contracts/interfaces/IPool.sol";
 import "@aave/core-v3/contracts/interfaces/IPoolAddressesProvider.sol";
 
-contract PokerEscrow is Ownable {
+contract PotLock is Ownable {
     // USDC token interface
     IERC20 public usdc;
     

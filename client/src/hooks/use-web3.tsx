@@ -6,7 +6,7 @@ import { apiRequest, queryClient } from "../lib/queryClient";
 import CoinbaseWalletSDK from "@coinbase/wallet-sdk";
 
 // Coinbase Wallet configuration
-const APP_NAME = "PokerEscrow";
+const APP_NAME = "PotLock";
 const APP_LOGO_URL = "https://example.com/logo.png";
 const DEFAULT_ETH_JSONRPC_URL = "https://mainnet.base.org"; // Base mainnet RPC URL
 const DEFAULT_CHAIN_ID = 8453; // Base mainnet

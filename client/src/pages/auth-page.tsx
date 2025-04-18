@@ -70,8 +70,8 @@ export default function AuthPage() {
             <div className="inline-flex items-center justify-center w-20 h-20 bg-primary rounded-full mb-4">
               <span className="text-white text-3xl">🃏</span>
             </div>
-            <h1 className="text-3xl font-bold text-gray-800">PokerEscrow</h1>
-            <p className="text-gray-600 mt-2">Secure blockchain escrow for poker games</p>
+            <h1 className="text-3xl font-bold text-gray-800">PotLock</h1>
+            <p className="text-gray-600 mt-2">Secure blockchain platform for poker payouts</p>
           </div>
 
           {/* Auth Forms */}

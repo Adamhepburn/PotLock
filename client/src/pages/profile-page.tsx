@@ -1,69 +1,104 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function ProfilePage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { user: authUser, logoutMutation } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
   
-  // Sample user data (would normally come from auth context)
+  // Use real user data from auth context if available
   const user = {
-    username: "aaa",
-    email: "aaaa@gmail.com",
+    username: authUser?.username || "Demo User",
+    email: authUser?.email || "demo@example.com",
     walletAddress: address || "Not connected",
-    joinedAt: new Date().toISOString(),
+    joinDate: authUser?.createdAt ? new Date(authUser.createdAt) : new Date(),
   };
   
-  // Handle wallet connection
+  // Check for stored wallet connection on load
+  useEffect(() => {
+    const storedWallet = localStorage.getItem('wallet_address');
+    if (storedWallet) {
+      setAddress(storedWallet);
+      setIsConnected(true);
+    }
+  }, []);
+  
+  // Handle wallet connection (simulated)
   const handleConnectWallet = async () => {
     setIsConnecting(true);
-    try {
-      await connectWallet();
+    
+    // Simulate wallet connection for demo purposes
+    setTimeout(() => {
+      // Generate a mock wallet address
+      const mockAddress = "0x" + Math.random().toString(16).substring(2, 42);
+      
+      // Store in local state and localStorage
+      setAddress(mockAddress);
+      setIsConnected(true);
+      localStorage.setItem('wallet_address', mockAddress);
+      
       toast({
         title: "Wallet connected",
         description: "Coinbase Wallet has been connected successfully!",
       });
-    } catch (error: any) {
-      toast({
-        title: "Connection failed",
-        description: error.message || "Failed to connect wallet",
-        variant: "destructive",
-      });
-    } finally {
       setIsConnecting(false);
-    }
+    }, 1500);
   };
   
-  // Handle wallet disconnection
+  // Handle wallet disconnection (simulated)
   const handleDisconnectWallet = () => {
-    disconnectWallet();
+    // Simulate wallet disconnection
+    setAddress(null);
+    setIsConnected(false);
+    
+    // Remove from localStorage
+    localStorage.removeItem('wallet_address');
+    
     toast({
       title: "Wallet disconnected",
       description: "Your wallet has been disconnected.",
     });
   };
   
-  // Handle logout
+  // Handle logout using auth context
   const handleLogout = () => {
     setIsLoggingOut(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      toast({
-        title: "Logged out",
-        description: "You have been successfully logged out.",
-      });
-      setIsLoggingOut(false);
-      navigate("/auth");
-    }, 1000);
+    // Disconnect wallet if connected
+    if (isConnected) {
+      handleDisconnectWallet();
+    }
+    
+    // Use auth logout mutation
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        toast({
+          title: "Logged out",
+          description: "You have been successfully logged out.",
+        });
+        navigate("/auth");
+      },
+      onError: (error: Error) => {
+        toast({
+          title: "Logout failed",
+          description: error.message || "Failed to log out. Please try again.",
+          variant: "destructive",
+        });
+      },
+      onSettled: () => {
+        setIsLoggingOut(false);
+      }
+    });
   };
 
   return (
@@ -96,7 +131,7 @@ export default function ProfilePage() {
               
               <div>
                 <Label className="text-sm text-gray-500">Joined</Label>
-                <div className="font-medium">{new Date(user.joinedAt).toLocaleDateString()}</div>
+                <div className="font-medium">{user.joinDate.toLocaleDateString()}</div>
               </div>
             </div>
           </CardContent>

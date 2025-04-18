@@ -25,6 +25,11 @@ export const games = pgTable("games", {
   contractAddress: text("contract_address").default(null),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   createdById: integer("created_by_id").notNull().references(() => users.id),
+  location: text("location").default(""),
+  gameDate: timestamp("game_date"),
+  description: text("description").default(""),
+  isPrivate: boolean("is_private").default(false),
+  maxPlayers: integer("max_players").default(10),
 });
 
 // Player schema (users in games)

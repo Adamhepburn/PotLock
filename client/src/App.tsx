@@ -10,13 +10,15 @@ import ApprovalPage from "@/pages/approval-page";
 import StakingPage from "@/pages/staking-page";
 import WalletPage from "@/pages/wallet-page";
 import SettingsPage from "@/pages/settings-page";
+import DashboardPage from "@/pages/dashboard-page";
 
 function App() {
   return (
     <TooltipProvider>
       <Switch>
-        <Route path="/" component={AuthPage} />
+        <Route path="/" component={DashboardPage} />
         <Route path="/auth" component={AuthPage} />
+        <Route path="/dashboard" component={DashboardPage} />
         <Route path="/profile" component={ProfilePage} />
         <Route path="/profile/:userId" component={ProfilePage} />
         <Route path="/games" component={GameSetupPage} />

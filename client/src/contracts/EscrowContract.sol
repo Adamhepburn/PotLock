@@ -341,4 +341,96 @@ contract PokerEscrow is Ownable {
     function emergencyWithdraw(address token, uint256 amount) external onlyOwner {
         IERC20(token).transfer(owner(), amount);
     }
+    
+    // Update Aave pool address (only owner)
+    function updateAavePoolAddress(address _aavePoolAddress) external onlyOwner {
+        aavePool = IPool(_aavePoolAddress);
+    }
+    
+    // Update aUSDC token address (only owner)
+    function updateAUsdcAddress(address _aUsdcAddress) external onlyOwner {
+        aUsdcAddress = _aUsdcAddress;
+    }
+    
+    // Stake funds in Aave to earn yield
+    function stakeInAave(uint256 amount) external {
+        require(amount > 0, "Amount must be greater than 0");
+        require(usdc.transferFrom(msg.sender, address(this), amount), "USDC transfer failed");
+        
+        // Approve Aave pool to spend USDC
+        usdc.approve(address(aavePool), amount);
+        
+        // Supply USDC to Aave pool
+        aavePool.supply(address(usdc), amount, address(this), 0);
+        
+        // Update staking records
+        stakedBalances[msg.sender] += amount;
+        totalStaked += amount;
+        
+        emit FundsStaked(msg.sender, amount);
+    }
+    
+    // Unstake funds from Aave
+    function unstakeFromAave(uint256 amount) external {
+        require(amount > 0, "Amount must be greater than 0");
+        require(stakedBalances[msg.sender] >= amount, "Insufficient staked balance");
+        
+        // Calculate how much aToken we need to withdraw to get the requested amount of USDC
+        uint256 aTokenAmount = amount;  // This is simplified; in practice might need conversion
+        
+        // Withdraw USDC from Aave pool
+        uint256 amountReceived = aavePool.withdraw(address(usdc), amount, address(this));
+        
+        // Update staking records
+        stakedBalances[msg.sender] -= amount;
+        totalStaked -= amount;
+        
+        // Transfer USDC back to user
+        require(usdc.transfer(msg.sender, amountReceived), "USDC transfer failed");
+        
+        emit FundsUnstaked(msg.sender, amountReceived);
+    }
+    
+    // Get total yield earned by user (simplified)
+    function getUserYield(address user) external view returns (uint256) {
+        if (stakedBalances[user] == 0) return 0;
+        
+        // This is a simplified calculation
+        // In a real implementation, we would need to track when funds were deposited
+        // and calculate the yield based on the time elapsed and current APY
+        
+        // For now, assume 5% APY
+        uint256 annualYield = (stakedBalances[user] * 5) / 100;
+        
+        // Pro-rate to seconds (assuming 365 days in a year)
+        uint256 secondsInYear = 365 * 24 * 60 * 60;
+        uint256 yieldPerSecond = annualYield / secondsInYear;
+        
+        // For demo purposes, assume funds have been staked for 30 days
+        uint256 secondsStaked = 30 * 24 * 60 * 60;
+        
+        return yieldPerSecond * secondsStaked;
+    }
+    
+    // Get user's total staked balance
+    function getUserStakedBalance(address user) external view returns (uint256) {
+        return stakedBalances[user];
+    }
+    
+    // Collect yield without unstaking the principal (simplified)
+    function collectYield() external {
+        uint256 yieldAmount = this.getUserYield(msg.sender);
+        require(yieldAmount > 0, "No yield to collect");
+        
+        // This is simplified; in a real implementation, we would need to
+        // accurately calculate the yield and handle the aToken conversion
+        
+        // For the demo, we'll withdraw the yield amount from Aave
+        uint256 amountReceived = aavePool.withdraw(address(usdc), yieldAmount, address(this));
+        
+        // Transfer the yield to the user
+        require(usdc.transfer(msg.sender, amountReceived), "USDC transfer failed");
+        
+        emit YieldCollected(msg.sender, amountReceived);
+    }
 }

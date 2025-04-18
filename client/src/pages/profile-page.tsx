@@ -175,6 +175,29 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
         
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Earn Interest</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm text-gray-600 mb-4">
+              Earn approximately 5% APY on your funds between games by investing in the Aave lending pool on Base.
+            </div>
+            <Button 
+              className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white"
+              onClick={() => navigate("/staking")}
+              disabled={!isConnected}
+            >
+              {isConnected ? "View Earning Options" : "Connect Wallet to Earn"}
+            </Button>
+            {!isConnected && (
+              <div className="mt-2 text-xs text-gray-500 text-center">
+                Connect your wallet above to access earning features
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        
         <Card>
           <CardHeader>
             <CardTitle>Actions</CardTitle>

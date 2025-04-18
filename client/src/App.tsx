@@ -7,6 +7,7 @@ import GameSetupPage from "@/pages/game-setup-page";
 import GameDetailPage from "@/pages/game-detail-page";
 import CashOutPage from "@/pages/cash-out-page";
 import ApprovalPage from "@/pages/approval-page";
+import StakingPage from "@/pages/staking-page";
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Route path="/games/:id" component={GameDetailPage} />
         <Route path="/cashout/:gameId" component={CashOutPage} />
         <Route path="/approval/:requestId" component={ApprovalPage} />
+        <Route path="/staking" component={StakingPage} />
         <Route component={NotFound} />
       </Switch>
     </TooltipProvider>

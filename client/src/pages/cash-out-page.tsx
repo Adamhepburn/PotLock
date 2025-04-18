@@ -1,17 +1,26 @@
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { useWeb3 } from "@/hooks/use-web3";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { StakingModal } from "@/components/StakingModal";
+import { Switch } from "@/components/ui/switch";
 
 export default function CashOutPage() {
   const { gameId } = useParams();
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { isConnected } = useWeb3();
   const [chipCount, setChipCount] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isStakingModalOpen, setIsStakingModalOpen] = useState(false);
+  const [enableStaking, setEnableStaking] = useState(false);
+  
+  // Contracts (would be fetched from config or environment)
+  const escrowContractAddress = "0x1234567890123456789012345678901234567890"; // Sample address
   
   // Sample game data (would normally be fetched from API)
   const game = {
@@ -36,15 +45,35 @@ export default function CashOutPage() {
     
     setIsSubmitting(true);
     
-    // Simulate API call
+    // Simulate API call for cash out request
     setTimeout(() => {
       toast({
         title: "Cash out request submitted",
         description: "Your request has been sent for approval by other players.",
       });
       setIsSubmitting(false);
-      navigate(`/games/${gameId}`);
+      
+      // If staking is enabled, open the staking modal after submission
+      if (enableStaking) {
+        setIsStakingModalOpen(true);
+      } else {
+        navigate(`/games/${gameId}`);
+      }
     }, 1000);
+  };
+  
+  // Toggle staking option
+  const handleStakingToggle = (checked: boolean) => {
+    if (checked && !isConnected) {
+      toast({
+        title: "Wallet not connected",
+        description: "Please connect your wallet in the profile page before enabling the earnings feature.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setEnableStaking(checked);
   };
 
   return (
@@ -91,6 +120,28 @@ export default function CashOutPage() {
                 </p>
               </div>
               
+              {/* Staking option */}
+              <div className="border border-gray-200 rounded-md p-4 mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="staking-toggle" className="font-medium">
+                    Keep earning on your funds
+                  </Label>
+                  <Switch 
+                    id="staking-toggle"
+                    checked={enableStaking}
+                    onCheckedChange={handleStakingToggle}
+                  />
+                </div>
+                <p className="text-sm text-gray-600">
+                  Earn approximately 5% APY on your funds until your next game. Your money stays accessible anytime.
+                </p>
+                {enableStaking && (
+                  <div className="mt-2 text-sm font-medium text-emerald-600">
+                    After cash-out approval, you'll be prompted to start earning.
+                  </div>
+                )}
+              </div>
+              
               <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-4">
                 <h3 className="text-amber-800 font-medium text-sm mb-2">Important</h3>
                 <p className="text-sm text-amber-700">
@@ -118,10 +169,23 @@ export default function CashOutPage() {
               <li>Other players in the game verify your submission</li>
               <li>Once approved, the escrow contract releases your funds</li>
               <li>Funds are transferred to your connected wallet</li>
+              {enableStaking && (
+                <li className="text-emerald-600 font-medium">
+                  Your funds start earning ~5% APY until you need them again
+                </li>
+              )}
             </ol>
           </CardContent>
         </Card>
       </div>
+      
+      {/* Staking Modal */}
+      <StakingModal
+        open={isStakingModalOpen}
+        onOpenChange={setIsStakingModalOpen}
+        amount={chipCount}
+        contractAddress={escrowContractAddress}
+      />
       
       {/* Navigation bar */}
       <div className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-gray-200 flex items-center justify-around px-6">

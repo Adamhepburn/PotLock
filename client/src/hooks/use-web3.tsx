@@ -44,8 +44,7 @@ const initializeCoinbaseWallet = () => {
   if (!coinbaseWallet) {
     coinbaseWallet = new CoinbaseWalletSDK({
       appName: APP_NAME,
-      appLogoUrl: APP_LOGO_URL,
-      darkMode: false
+      appLogoUrl: APP_LOGO_URL
     });
     
     coinbaseProvider = coinbaseWallet.makeWeb3Provider(

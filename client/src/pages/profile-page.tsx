@@ -80,7 +80,7 @@ export default function ProfilePage() {
                 <div className="text-sm text-gray-500">Connected Wallet</div>
                 <div className="font-medium flex items-center">
                   <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                  <span>MetaMask</span>
+                  <span>Coinbase Wallet</span>
                 </div>
               </div>
               <Button variant="outline" size="sm">Change</Button>

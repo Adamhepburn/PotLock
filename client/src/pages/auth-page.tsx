@@ -60,16 +60,20 @@ export default function AuthPage() {
     }
   }
 
-  // Handle MetaMask login
-  async function handleMetaMaskLogin() {
+  // Handle Coinbase Wallet login
+  async function handleCoinbaseWalletLogin() {
     setIsConnecting(true);
     
     try {
-      // Simple success message since we're not actually connecting
-      toast({
-        title: "MetaMask connection",
-        description: "MetaMask connection feature is not available in this demo.",
-      });
+      // Simulate wallet connection for demo purposes
+      // In a real app, we would use the actual Coinbase Wallet connection
+      setTimeout(() => {
+        toast({
+          title: "Wallet connected",
+          description: "Your Coinbase Wallet has been connected successfully!",
+        });
+        navigate("/games");
+      }, 1500);
     } catch (error: any) {
       toast({
         title: "Connection failed",
@@ -77,7 +81,9 @@ export default function AuthPage() {
         variant: "destructive",
       });
     } finally {
-      setIsConnecting(false);
+      setTimeout(() => {
+        setIsConnecting(false);
+      }, 1500);
     }
   }
 
@@ -171,11 +177,11 @@ export default function AuthPage() {
                 </div>
                 
                 <Button 
-                  className="w-full bg-gray-800 hover:bg-gray-900 text-white"
-                  onClick={handleMetaMaskLogin}
+                  className="w-full bg-blue-700 hover:bg-blue-800 text-white"
+                  onClick={handleCoinbaseWalletLogin}
                   disabled={isConnecting}
                 >
-                  {isConnecting ? "Connecting..." : `${isRegister ? "Sign Up" : "Connect"} with MetaMask`}
+                  {isConnecting ? "Connecting..." : `${isRegister ? "Sign Up" : "Connect"} with Coinbase Wallet`}
                 </Button>
               </div>
             </CardContent>

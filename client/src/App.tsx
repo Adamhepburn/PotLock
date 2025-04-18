@@ -8,6 +8,8 @@ import GameDetailPage from "@/pages/game-detail-page";
 import CashOutPage from "@/pages/cash-out-page";
 import ApprovalPage from "@/pages/approval-page";
 import StakingPage from "@/pages/staking-page";
+import WalletPage from "@/pages/wallet-page";
+import SettingsPage from "@/pages/settings-page";
 
 function App() {
   return (
@@ -16,11 +18,15 @@ function App() {
         <Route path="/" component={AuthPage} />
         <Route path="/auth" component={AuthPage} />
         <Route path="/profile" component={ProfilePage} />
+        <Route path="/profile/:userId" component={ProfilePage} />
         <Route path="/games" component={GameSetupPage} />
         <Route path="/games/:id" component={GameDetailPage} />
+        <Route path="/cash-out" component={CashOutPage} />
         <Route path="/cashout/:gameId" component={CashOutPage} />
         <Route path="/approval/:requestId" component={ApprovalPage} />
         <Route path="/staking" component={StakingPage} />
+        <Route path="/wallet" component={WalletPage} />
+        <Route path="/settings" component={SettingsPage} />
         <Route component={NotFound} />
       </Switch>
     </TooltipProvider>

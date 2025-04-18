@@ -274,342 +274,68 @@ export default function ProfilePage() {
 
       {/* Main content with tabs */}
       <div className="px-6 py-4">
-        {isViewingFriend ? (
-          // Friend profile view - gamified tabs
-          <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-6">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="achievements">Achievements</TabsTrigger>
-              <TabsTrigger value="friends">Friends</TabsTrigger>
-              <TabsTrigger value="games">Games</TabsTrigger>
-            </TabsList>
-            
-            {/* Overview Tab for Friend */}
-            <TabsContent value="overview">
-              <Card className="mb-6">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center">
-                    <Trophy className="w-5 h-5 mr-2 text-amber-500" />
-                    Player Stats
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <div className="text-sm text-gray-500">Games Played</div>
-                        <div className="text-xl font-bold">{stats.gamesPlayed}</div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          Won: {stats.gamesWon} · Lost: {stats.gamesLost}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-gray-500">Win Rate</div>
-                        <div className="text-xl font-bold">
-                          {stats.gamesPlayed > 0 
-                            ? Math.round((stats.gamesWon / stats.gamesPlayed) * 100) 
-                            : 0}%
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="pt-4 border-t">
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <div className="text-sm text-gray-500">Favorite Game</div>
-                          <div className="font-medium">Texas Hold'em</div>
-                        </div>
-                        <div>
-                          <div className="text-sm text-gray-500">Playing Style</div>
-                          <div className="font-medium">Aggressive</div>
-                        </div>
-                        <div>
-                          <div className="text-sm text-gray-500">Member Since</div>
-                          <div className="font-medium">
-                            {friendData?.joinDate.toLocaleDateString() || "N/A"}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="mb-6">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center">
-                    <BadgeCheck className="w-5 h-5 mr-2 text-indigo-500" />
-                    Recent Achievements
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {achievements.filter(a => a.earned).slice(0, 3).map(achievement => (
-                      <div key={achievement.id} className="flex items-center p-3 bg-gray-50 rounded-lg">
-                        <div className="bg-white p-2 rounded-full shadow-sm">
-                          {achievement.icon}
-                        </div>
-                        <div className="ml-3">
-                          <div className="font-medium">{achievement.name}</div>
-                          <div className="text-xs text-gray-500">{achievement.description}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-                <CardFooter className="pt-0">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="w-full text-sm"
-                    onClick={() => document.querySelector('[data-value="achievements"]')?.click()}
-                  >
-                    View All Achievements
-                  </Button>
-                </CardFooter>
-              </Card>
-              
-              <Card className="mb-6">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center">
-                    <Users className="w-5 h-5 mr-2 text-blue-500" />
-                    Mutual Friends
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {friends.slice(0, 2).map(friend => (
-                      <div key={friend.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center">
-                          <Avatar className="h-10 w-10">
-                            <AvatarFallback>{friend.username.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          <div className="ml-3">
-                            <div className="font-medium">{friend.username}</div>
-                            <div className="flex items-center">
-                              <div className={`w-1.5 h-1.5 ${friend.status === 'online' ? 'bg-green-500' : 'bg-gray-400'} rounded-full mr-1.5`}></div>
-                              <span className="text-xs text-gray-500 capitalize">{friend.status}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm" onClick={() => navigate(`/profile/${friend.id}`)}>
-                          View
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-                <CardFooter className="pt-0">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="w-full text-sm"
-                    onClick={() => document.querySelector('[data-value="friends"]')?.click()}
-                  >
-                    View All Friends
-                  </Button>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-            
-            {/* Achievements Tab */}
-            <TabsContent value="achievements">
-              <Card className="mb-6">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center">
-                    <Trophy className="w-5 h-5 mr-2 text-amber-500" />
-                    All Achievements
-                  </CardTitle>
-                  <CardDescription>
-                    Achievements earned by playing poker games
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {achievements.map(achievement => (
-                      <div 
-                        key={achievement.id} 
-                        className={`flex items-center p-3 rounded-lg ${achievement.earned ? 'bg-gray-50' : 'bg-gray-50/50'}`}
-                      >
-                        <div className={`p-2 rounded-full shadow-sm ${achievement.earned ? 'bg-white' : 'bg-gray-100'}`}>
-                          {achievement.icon}
-                        </div>
-                        <div className="ml-3 flex-1">
-                          <div className="flex items-center justify-between">
-                            <div className="font-medium">{achievement.name}</div>
-                            {achievement.earned ? (
-                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                <BadgeCheck className="h-3 w-3 mr-1" />
-                                Earned
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200">
-                                Locked
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="text-xs text-gray-500">{achievement.description}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            {/* Friends Tab */}
-            <TabsContent value="friends">
-              <Card className="mb-6">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg flex items-center">
-                      <Users className="w-5 h-5 mr-2 text-blue-500" />
-                      Friends
-                    </CardTitle>
-                    <Badge>{friends.length}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {friends.map(friend => (
-                      <div key={friend.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center">
-                          <Avatar className="h-10 w-10">
-                            <AvatarFallback>{friend.username.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          <div className="ml-3">
-                            <div className="font-medium">{friend.username}</div>
-                            <div className="flex items-center">
-                              <div className={`w-1.5 h-1.5 ${friend.status === 'online' ? 'bg-green-500' : 'bg-gray-400'} rounded-full mr-1.5`}></div>
-                              <span className="text-xs text-gray-500 capitalize">{friend.status}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <Button variant="outline" size="sm" onClick={() => navigate(`/profile/${friend.id}`)}>
-                          View Profile
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            {/* Games Tab */}
-            <TabsContent value="games">
-              <Card className="mb-6">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center">
-                    <CreditCard className="w-5 h-5 mr-2 text-amber-500" />
-                    Recent Games
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {recentGames.map(game => (
-                      <div key={game.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <div className="font-medium">{game.name}</div>
-                          <div className="text-xs text-gray-500">{game.date}</div>
-                        </div>
-                        <div className="flex items-center">
-                          <Badge 
-                            variant="outline" 
-                            className={`mr-3 ${
-                              game.result === 'Win' 
-                                ? 'bg-green-50 text-green-700 border-green-200' 
-                                : 'bg-red-50 text-red-700 border-red-200'
-                            }`}
-                          >
-                            {game.result}
-                          </Badge>
-                          <div className={`font-medium ${
-                            game.amount.startsWith('+') 
-                              ? 'text-green-600' 
-                              : 'text-red-600'
-                          }`}>
-                            {game.amount}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-                <CardFooter className="pt-0">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full text-sm"
-                    onClick={() => navigate("/games")}
-                  >
-                    View All Games
-                  </Button>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        ) : (
-          // Personal profile view - with wallet, earnings, settings
-          <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-6">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="wallet">Wallet</TabsTrigger>
-              <TabsTrigger value="earnings">Earnings</TabsTrigger>
-              <TabsTrigger value="settings">Settings</TabsTrigger>
-            </TabsList>
-          
-            {/* Overview Tab */}
-            <TabsContent value="overview">
-              {/* Account Card */}
-              <Card className="mb-6">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg flex items-center">
-                      <User className="w-5 h-5 mr-2" />
-                      Account
-                    </CardTitle>
-                    <Button variant="ghost" size="sm" className="text-sm">Edit</Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <Label className="text-xs text-gray-500">Username</Label>
-                        <div className="font-medium">{user.username}</div>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-gray-500">Email</Label>
-                        <div className="font-medium">{user.email}</div>
-                      </div>
-                      <div className="col-span-2">
-                        <Label className="text-xs text-gray-500">Joined</Label>
-                        <div className="font-medium">{user.joinDate.toLocaleDateString()}</div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+        {/* Personal Profile Action Bar - only visible to own profile */}
+        {!isViewingFriend && (
+          <div className="flex items-center justify-between mb-6 gap-2 overflow-x-auto py-1 no-scrollbar">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center whitespace-nowrap"
+              onClick={() => navigate("/wallet")}
+            >
+              <Wallet className="h-4 w-4 mr-1" />
+              {isConnected ? "Manage Wallet" : "Connect Wallet"}
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center whitespace-nowrap"
+              onClick={() => navigate("/staking")}
+            >
+              <TrendingUp className="h-4 w-4 mr-1" />
+              Earn Interest
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center whitespace-nowrap"
+              onClick={() => navigate("/cash-out")}
+            >
+              <DollarSign className="h-4 w-4 mr-1" />
+              Cash Out
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center whitespace-nowrap"
+              onClick={() => navigate("/settings")}
+            >
+              <Settings className="h-4 w-4 mr-1" />
+              Settings
+            </Button>
+          </div>
+        )}
 
-              {/* Game Stats Card */}
-              <Card className="mb-6">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg flex items-center">
-                      <Users className="w-5 h-5 mr-2" />
-                      Game Statistics
-                    </CardTitle>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="text-sm"
-                      onClick={() => navigate("/games")}
-                    >
-                      View Games
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
+        {/* Gamified Profile Interface - Same for both own and friend profiles */}
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="achievements">Achievements</TabsTrigger>
+            <TabsTrigger value="friends">Friends</TabsTrigger>
+            <TabsTrigger value="games">Games</TabsTrigger>
+          </TabsList>
+          
+          {/* Overview Tab */}
+          <TabsContent value="overview">
+            <Card className="mb-6">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center">
+                  <Trophy className="w-5 h-5 mr-2 text-amber-500" />
+                  Player Stats
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <div className="text-sm text-gray-500">Games Played</div>
@@ -628,275 +354,271 @@ export default function ProfilePage() {
                     </div>
                   </div>
                   
-                  <div className="mt-4 pt-4 border-t">
-                    <div className="grid grid-cols-3 gap-2 mb-2">
-                      <div className="text-sm">
-                        <div className="text-gray-500 text-xs">Total Earnings</div>
-                        <div className="font-medium text-green-600">${stats.totalEarnings}</div>
+                  <div className="pt-4 border-t">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <div className="text-sm text-gray-500">Favorite Game</div>
+                        <div className="font-medium">Texas Hold'em</div>
                       </div>
-                      <div className="text-sm">
-                        <div className="text-gray-500 text-xs">Total Losses</div>
-                        <div className="font-medium text-red-600">${stats.totalLosses}</div>
+                      <div>
+                        <div className="text-sm text-gray-500">Playing Style</div>
+                        <div className="font-medium">Aggressive</div>
                       </div>
-                      <div className="text-sm">
-                        <div className="text-gray-500 text-xs">Net Profit</div>
-                        <div className={`font-medium ${stats.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          ${stats.netProfit}
+                      <div>
+                        <div className="text-sm text-gray-500">Member Since</div>
+                        <div className="font-medium">
+                          {activeUser?.joinDate.toLocaleDateString() || "N/A"}
                         </div>
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* Recent Activity */}
-              <Card className="mb-6">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center">
-                    <Clock className="w-5 h-5 mr-2" />
-                    Recent Activity
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {recentActivity.map((activity, i) => (
-                      <div key={i} className="flex items-start">
-                        <div className="mt-0.5">
-                          {activity.type === 'game_join' && (
-                            <Users className="h-5 w-5 text-blue-500" />
-                          )}
-                          {activity.type === 'cash_out' && (
-                            <DollarSign className="h-5 w-5 text-green-500" />
-                          )}
-                          {activity.type === 'staking' && (
-                            <TrendingUp className="h-5 w-5 text-purple-500" />
-                          )}
-                          {activity.type === 'game_win' && (
-                            <CreditCard className="h-5 w-5 text-amber-500" />
-                          )}
-                        </div>
-                        <div className="ml-3 flex-1">
-                          <div className="text-sm font-medium">{activity.description}</div>
-                          <div className="text-xs text-gray-500">{activity.date}</div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="mb-6">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center">
+                  <BadgeCheck className="w-5 h-5 mr-2 text-indigo-500" />
+                  Recent Achievements
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {achievements.filter(a => a.earned).slice(0, 3).map(achievement => (
+                    <div key={achievement.id} className="flex items-center p-3 bg-gray-50 rounded-lg">
+                      <div className="bg-white p-2 rounded-full shadow-sm">
+                        {achievement.icon}
+                      </div>
+                      <div className="ml-3">
+                        <div className="font-medium">{achievement.name}</div>
+                        <div className="text-xs text-gray-500">{achievement.description}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+              <CardFooter className="pt-0">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full text-sm"
+                  onClick={() => {
+                    const element = document.querySelector('[data-value="achievements"]');
+                    if (element instanceof HTMLElement) element.click();
+                  }}
+                >
+                  View All Achievements
+                </Button>
+              </CardFooter>
+            </Card>
+            
+            <Card className="mb-6">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center">
+                  <Users className="w-5 h-5 mr-2 text-blue-500" />
+                  {isViewingFriend ? "Mutual Friends" : "Friends"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {friends.slice(0, 2).map(friend => (
+                    <div key={friend.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center">
+                        <Avatar className="h-10 w-10">
+                          <AvatarFallback>{friend.username.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="ml-3">
+                          <div className="font-medium">{friend.username}</div>
+                          <div className="flex items-center">
+                            <div className={`w-1.5 h-1.5 ${friend.status === 'online' ? 'bg-green-500' : 'bg-gray-400'} rounded-full mr-1.5`}></div>
+                            <span className="text-xs text-gray-500 capitalize">{friend.status}</span>
+                          </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
+                      <Button variant="ghost" size="sm" onClick={() => navigate(`/profile/${friend.id}`)}>
+                        View
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+              <CardFooter className="pt-0">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full text-sm"
+                  onClick={() => {
+                    const element = document.querySelector('[data-value="friends"]');
+                    if (element instanceof HTMLElement) element.click();
+                  }}
+                >
+                  View All Friends
+                </Button>
+              </CardFooter>
+            </Card>
+
+            {/* Recent Activity */}
+            <Card className="mb-6">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center">
+                  <Clock className="w-5 h-5 mr-2" />
+                  Recent Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {recentActivity.map((activity, i) => (
+                    <div key={i} className="flex items-start">
+                      <div className="mt-0.5">
+                        {activity.type === 'game_join' && (
+                          <Users className="h-5 w-5 text-blue-500" />
+                        )}
+                        {activity.type === 'cash_out' && (
+                          <DollarSign className="h-5 w-5 text-green-500" />
+                        )}
+                        {activity.type === 'staking' && (
+                          <TrendingUp className="h-5 w-5 text-purple-500" />
+                        )}
+                        {activity.type === 'game_win' && (
+                          <CreditCard className="h-5 w-5 text-amber-500" />
+                        )}
+                      </div>
+                      <div className="ml-3 flex-1">
+                        <div className="text-sm font-medium">{activity.description}</div>
+                        <div className="text-xs text-gray-500">{activity.date}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+              <CardFooter className="pt-0">
+                <Button variant="ghost" size="sm" className="w-full text-sm">
+                  View All Activity
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+          
+          {/* Achievements Tab */}
+          <TabsContent value="achievements">
+            <Card className="mb-6">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center">
+                  <Trophy className="w-5 h-5 mr-2 text-amber-500" />
+                  All Achievements
+                </CardTitle>
+                <CardDescription>
+                  Achievements earned by playing poker games
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {achievements.map(achievement => (
+                    <div 
+                      key={achievement.id} 
+                      className={`flex items-center p-3 rounded-lg ${achievement.earned ? 'bg-gray-50' : 'bg-gray-50/50'}`}
+                    >
+                      <div className={`p-2 rounded-full shadow-sm ${achievement.earned ? 'bg-white' : 'bg-gray-100'}`}>
+                        {achievement.icon}
+                      </div>
+                      <div className="ml-3 flex-1">
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium">{achievement.name}</div>
+                          {achievement.earned ? (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              <BadgeCheck className="h-3 w-3 mr-1" />
+                              Earned
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200">
+                              Locked
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500">{achievement.description}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Friends Tab */}
+          <TabsContent value="friends">
+            <Card className="mb-6">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg flex items-center">
+                    <Users className="w-5 h-5 mr-2 text-blue-500" />
+                    Friends
+                  </CardTitle>
+                  <Badge>{friends.length}</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {friends.map(friend => (
+                    <div key={friend.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center">
+                        <Avatar className="h-10 w-10">
+                          <AvatarFallback>{friend.username.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="ml-3">
+                          <div className="font-medium">{friend.username}</div>
+                          <div className="flex items-center">
+                            <div className={`w-1.5 h-1.5 ${friend.status === 'online' ? 'bg-green-500' : 'bg-gray-400'} rounded-full mr-1.5`}></div>
+                            <span className="text-xs text-gray-500 capitalize">{friend.status}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => navigate(`/profile/${friend.id}`)}>
+                        View Profile
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+              {!isViewingFriend && (
                 <CardFooter className="pt-0">
-                  <Button variant="ghost" size="sm" className="w-full text-sm">
-                    View All Activity
+                  <Button variant="outline" className="w-full">
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add New Friend
                   </Button>
                 </CardFooter>
-              </Card>
-            </TabsContent>
-            
-            {/* Wallet Tab */}
-            <TabsContent value="wallet">
-              <Card className="mb-6">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center">
-                      <Wallet className="w-5 h-5 mr-2" />
-                      Wallet Connection
-                    </CardTitle>
-                    {isConnected && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={handleDisconnectWallet}
-                      >
-                        Disconnect
-                      </Button>
-                    )}
-                  </div>
-                  <CardDescription>
-                    Connect your wallet to use the platform's full features
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className={`p-4 mb-4 rounded-lg ${isConnected ? 'bg-green-50' : 'bg-gray-50'}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className={`w-3 h-3 ${isConnected ? 'bg-green-500' : 'bg-gray-400'} rounded-full mr-2`}></div>
-                        <span className={`font-medium ${isConnected ? 'text-green-800' : 'text-gray-800'}`}>
-                          {isConnected ? "Connected to Coinbase Wallet" : "Not connected"}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {isConnected && (
-                      <div className="mt-2 pt-2 border-t border-green-100">
-                        <div className="font-mono text-sm break-all text-gray-600">
-                          {address}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {!isConnected ? (
-                    <Button 
-                      className="w-full bg-blue-700 hover:bg-blue-800 text-white"
-                      onClick={handleConnectWallet}
-                      disabled={isConnecting}
-                    >
-                      {isConnecting ? (
-                        <span className="flex items-center">
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Connecting...
-                        </span>
-                      ) : (
-                        "Connect Coinbase Wallet"
-                      )}
-                    </Button>
-                  ) : (
-                    <div className="space-y-4">
-                      <div>
-                        <div className="text-sm text-gray-500 mb-1">Features available with wallet:</div>
-                        <div className="space-y-2">
-                          <div className="flex items-center text-sm">
-                            <Shield className="h-4 w-4 text-green-500 mr-2" />
-                            <span>Secure escrow for game payments</span>
-                          </div>
-                          <div className="flex items-center text-sm">
-                            <TrendingUp className="h-4 w-4 text-green-500 mr-2" />
-                            <span>Earn ~5% APY on idle funds via Aave</span>
-                          </div>
-                          <div className="flex items-center text-sm">
-                            <DollarSign className="h-4 w-4 text-green-500 mr-2" />
-                            <span>Fast and transparent cash-outs</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-              
-              {isConnected && (
-                <Card className="mb-6">
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <TrendingUp className="w-5 h-5 mr-2" />
-                      Earn Interest
-                    </CardTitle>
-                    <CardDescription>
-                      Earn approximately 5% APY on your funds between games
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <div className="text-xs text-gray-500">Total Staked</div>
-                            <div className="text-lg font-bold text-emerald-700">${stats.totalStaked}</div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-500">Interest Earned</div>
-                            <div className="text-lg font-bold text-emerald-700">${stats.earnedYield}</div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Button className="w-full" onClick={() => navigate("/staking")}>
-                          Keep Earning (Stake Funds)
-                        </Button>
-                        <Button variant="outline" className="w-full" onClick={() => navigate("/staking")}>
-                          Withdraw Staked Funds
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
               )}
-            </TabsContent>
-            
-            {/* Earnings Tab */}
-            <TabsContent value="earnings">
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <DollarSign className="w-5 h-5 mr-2" />
-                    Earnings Summary
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="bg-green-50 p-4 rounded-lg">
-                        <div className="text-sm text-gray-600">Total Winnings</div>
-                        <div className="text-2xl font-bold">${stats.totalEarnings}</div>
-                        <div className="text-xs text-gray-500 mt-1">From {stats.gamesWon} winning games</div>
+            </Card>
+          </TabsContent>
+          
+          {/* Games Tab */}
+          <TabsContent value="games">
+            <Card className="mb-6">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center">
+                  <CreditCard className="w-5 h-5 mr-2 text-amber-500" />
+                  Recent Games
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {recentGames.map(game => (
+                    <div key={game.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <div className="font-medium">{game.name}</div>
+                        <div className="text-xs text-gray-500">{game.date}</div>
                       </div>
-                      
-                      <div className="bg-red-50 p-4 rounded-lg">
-                        <div className="text-sm text-gray-600">Total Losses</div>
-                        <div className="text-2xl font-bold">${stats.totalLosses}</div>
-                        <div className="text-xs text-gray-500 mt-1">From {stats.gamesLost} losing games</div>
-                      </div>
-                    </div>
-                    
-                    <div className="pt-4 border-t">
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm font-medium">Net Profit/Loss</div>
-                        <div className={`text-lg font-bold ${stats.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          ${stats.netProfit}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {isConnected && (
-                      <div className="pt-4 border-t">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="text-sm font-medium">Interest Earned</div>
-                          <div className="text-lg font-bold text-emerald-600">${stats.earnedYield}</div>
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          Earning ~5% APY by staking ${stats.totalStaked} in Aave's lending pool
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="pt-4 border-t">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-sm font-medium">Active Cash Outs</div>
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{stats.activeCashouts}</Badge>
-                      </div>
-                      
-                      {stats.activeCashouts > 0 ? (
-                        <Button variant="outline" className="w-full" onClick={() => navigate('/cash-out')}>
-                          View Cash Out Status
-                        </Button>
-                      ) : (
-                        <div className="text-xs text-gray-500">
-                          No pending cash outs at the moment
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <TrendingUp className="w-5 h-5 mr-2" />
-                    Earnings History
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {recentGames.map(game => (
-                      <div key={game.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <div className="font-medium">{game.name}</div>
-                          <div className="text-xs text-gray-500">{game.date}</div>
-                        </div>
+                      <div className="flex items-center">
+                        <Badge 
+                          variant="outline" 
+                          className={`mr-3 ${
+                            game.result === 'Win' 
+                              ? 'bg-green-50 text-green-700 border-green-200' 
+                              : 'bg-red-50 text-red-700 border-red-200'
+                          }`}
+                        >
+                          {game.result}
+                        </Badge>
                         <div className={`font-medium ${
                           game.amount.startsWith('+') 
                             ? 'text-green-600' 
@@ -905,77 +627,26 @@ export default function ProfilePage() {
                           {game.amount}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-                <CardFooter className="pt-0">
-                  <Button variant="ghost" size="sm" className="w-full text-sm">
-                    View Complete History
-                  </Button>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-            
-            {/* Settings Tab */}
-            <TabsContent value="settings">
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Settings className="w-5 h-5 mr-2" />
-                    Account Settings
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="username">Username</Label>
-                      <Input id="username" defaultValue={user.username} />
                     </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="displayName">Display Name</Label>
-                      <Input id="displayName" placeholder="Add a display name" />
-                      <div className="text-xs text-gray-500">
-                        This is how you'll appear to other players
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" defaultValue={user.email} />
-                    </div>
-                    
-                    <div className="pt-2">
-                      <Button className="w-full">Save Changes</Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-red-600">
-                    <LogOut className="w-5 h-5 mr-2" />
-                    Logout
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Button 
-                    className="w-full"
-                    variant="destructive"
-                    onClick={handleLogout}
-                    disabled={isLoggingOut}
-                  >
-                    {isLoggingOut ? "Logging out..." : "Log out"}
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        )}
+                  ))}
+                </div>
+              </CardContent>
+              <CardFooter className="pt-0">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full text-sm"
+                  onClick={() => navigate("/games")}
+                >
+                  View All Games
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
-      
-      {/* Navigation bar */}
+
+      {/* Bottom Navigation Bar */}
       <div className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-gray-200 flex items-center justify-around px-6">
         <Button variant="ghost" className="flex flex-col items-center justify-center h-full" onClick={() => navigate("/games")}>
           <Users className="h-5 w-5" />

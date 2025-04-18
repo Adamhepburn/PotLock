@@ -1,0 +1,30 @@
+Create a Replit project for a mobile app called PokerEscrow, designed to simplify poker game payouts using blockchain. The app should allow players to deposit funds into a blockchain escrow account at the start of a poker game, submit their chip count when they want to cash out, get approval from other players and a banker, and receive automatic payouts. Use React Native for the frontend (iOS/Android), Node.js with Express and MongoDB for the backend, and a Solidity smart contract on the Base network for blockchain functionality. Integrate Web3.js for blockchain interactions and set up a basic MongoDB connection for game data.
+
+Steps:
+1. Set up a Replit project with React Native, Node.js, and Hardhat for Solidity.
+2. Create a basic React Native app with 4 screens:
+   - Login: Sign up/login with email or MetaMask wallet.
+   - Game Setup: Host creates game, players join and deposit USDC.
+   - Cash Out: Player submits chip count (numeric input in dollars).
+   - Approval: Players and banker approve/dispute chip count.
+3. Build a Node.js/Express backend with MongoDB to:
+   - Store game data (game ID, players, chip counts).
+   - Handle API endpoints for game creation, chip count submission, and approval.
+4. Write a Solidity smart contract for the Base network to:
+   - Accept USDC deposits into escrow.
+   - Store submitted chip counts.
+   - Allow players and banker to approve cash-outs.
+   - Distribute funds to the player’s wallet upon approval.
+5. Use Web3.js in the frontend to interact with the smart contract (deposit, submit, approve, payout).
+6. Include a README with setup instructions and a sample MongoDB connection string.
+7. Keep the code simple, with comments explaining each part, as I’m a beginner coder.
+
+Deliverables:
+- Replit project structure with folders: `frontend` (React Native), `backend` (Node.js/Express), `contracts` (Solidity/Hardhat).
+- Basic React Native screens with navigation.
+- Express backend with 3 API endpoints (/game, /cashout, /approve).
+- Solidity contract with deposit, submitChipCount, approveCashout, and payout functions.
+- Sample Web3.js integration for one screen (e.g., deposit).
+- README with steps to run the app and deploy the contract to Base testnet.
+
+Focus on simplicity, clear comments, and a working MVP. Avoid complex features like real-time tracking or TV display.

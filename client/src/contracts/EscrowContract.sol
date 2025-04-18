@@ -3,10 +3,16 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@aave/core-v3/contracts/interfaces/IPool.sol";
+import "@aave/core-v3/contracts/interfaces/IPoolAddressesProvider.sol";
 
 contract PokerEscrow is Ownable {
     // USDC token interface
     IERC20 public usdc;
+    
+    // Aave Pool interfaces
+    IPool public aavePool;
+    address public aUsdcAddress;
     
     struct Game {
         string name;
@@ -47,6 +53,10 @@ contract PokerEscrow is Ownable {
     // Cash out requests per game per player
     mapping(string => mapping(address => CashOutRequest)) public cashOutRequests;
     
+    // Staking pool
+    mapping(address => uint256) public stakedBalances;
+    uint256 public totalStaked;
+    
     // Events
     event GameCreated(string gameId, string name, uint256 buyInAmount, address banker);
     event PlayerJoined(string gameId, address player, uint256 buyIn);
@@ -56,9 +66,18 @@ contract PokerEscrow is Ownable {
     event CashOutDisputed(string gameId, address player, address disputer);
     event FundsWithdrawn(string gameId, address player, uint256 amount);
     event GameEnded(string gameId);
+    event FundsStaked(address indexed user, uint256 amount);
+    event FundsUnstaked(address indexed user, uint256 amount);
+    event YieldCollected(address indexed user, uint256 amount);
     
-    constructor(address _usdcAddress) {
+    constructor(
+        address _usdcAddress,
+        address _aavePoolAddress,
+        address _aUsdcAddress
+    ) {
         usdc = IERC20(_usdcAddress);
+        aavePool = IPool(_aavePoolAddress);
+        aUsdcAddress = _aUsdcAddress;
     }
     
     // Create a new game

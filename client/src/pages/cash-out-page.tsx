@@ -123,10 +123,10 @@ export default function CashOutPage() {
         </Card>
       </div>
       
-      {/* Navigation bar would go here */}
+      {/* Navigation bar */}
       <div className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-gray-200 flex items-center justify-around px-6">
         <Button variant="ghost" onClick={() => navigate("/games")}>Games</Button>
-        <Button variant="ghost" onClick={() => navigate("/auth")}>Profile</Button>
+        <Button variant="ghost" onClick={() => navigate("/profile")}>Profile</Button>
       </div>
     </div>
   );

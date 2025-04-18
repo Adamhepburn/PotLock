@@ -9,6 +9,8 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   email: text("email").notNull().unique(),
   walletAddress: text("wallet_address"),
+  displayName: text("display_name"),
+  profileImage: text("profile_image"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -62,18 +64,59 @@ export const approvals = pgTable("approvals", {
   requestApproverIdx: uniqueIndex("request_approver_idx").on(t.requestId, t.approverId),
 }));
 
+// Friend relationships
+export const friendships = pgTable("friendships", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  friendId: integer("friend_id").notNull().references(() => users.id),
+  status: text("status").notNull().default("pending"), // pending, accepted, rejected
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  userFriendIdx: uniqueIndex("user_friend_idx").on(t.userId, t.friendId),
+}));
+
+// Game invitations
+export const gameInvitations = pgTable("game_invitations", {
+  id: serial("id").primaryKey(),
+  gameId: integer("game_id").notNull().references(() => games.id),
+  inviterId: integer("inviter_id").notNull().references(() => users.id),
+  inviteeId: integer("invitee_id").notNull().references(() => users.id),
+  status: text("status").notNull().default("pending"), // pending, accepted, declined
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  gameInviteeIdx: uniqueIndex("game_invitee_idx").on(t.gameId, t.inviteeId),
+}));
+
+// Game reservations
+export const gameReservations = pgTable("game_reservations", {
+  id: serial("id").primaryKey(),
+  gameId: integer("game_id").notNull().references(() => games.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  depositAmount: numeric("deposit_amount").notNull(),
+  transactionHash: text("transaction_hash"),
+  status: text("status").notNull().default("pending"), // pending, confirmed, cancelled
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  gameUserReservationIdx: uniqueIndex("game_user_reservation_idx").on(t.gameId, t.userId),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users, {
   email: z.string().email(),
   username: z.string().min(3).max(50),
   password: z.string().min(8),
   walletAddress: z.string().optional(),
+  displayName: z.string().optional(),
+  profileImage: z.string().optional(),
 });
 
 export const insertGameSchema = createInsertSchema(games).omit({ id: true, createdAt: true });
 export const insertPlayerSchema = createInsertSchema(players).omit({ id: true, joinedAt: true });
 export const insertCashOutRequestSchema = createInsertSchema(cashOutRequests).omit({ id: true, createdAt: true });
 export const insertApprovalSchema = createInsertSchema(approvals).omit({ id: true, createdAt: true });
+export const insertFriendshipSchema = createInsertSchema(friendships).omit({ id: true, createdAt: true });
+export const insertGameInvitationSchema = createInsertSchema(gameInvitations).omit({ id: true, createdAt: true });
+export const insertGameReservationSchema = createInsertSchema(gameReservations).omit({ id: true, createdAt: true });
 
 // Auth Schemas
 export const loginSchema = z.object({
@@ -98,3 +141,12 @@ export type InsertApproval = z.infer<typeof insertApprovalSchema>;
 export type Approval = typeof approvals.$inferSelect;
 
 export type LoginData = z.infer<typeof loginSchema>;
+
+export type InsertFriendship = z.infer<typeof insertFriendshipSchema>;
+export type Friendship = typeof friendships.$inferSelect;
+
+export type InsertGameInvitation = z.infer<typeof insertGameInvitationSchema>;
+export type GameInvitation = typeof gameInvitations.$inferSelect;
+
+export type InsertGameReservation = z.infer<typeof insertGameReservationSchema>;
+export type GameReservation = typeof gameReservations.$inferSelect;

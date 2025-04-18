@@ -1,5 +1,14 @@
-import { users, games, players, cashOutRequests, approvals } from "@shared/schema";
-import type { User, InsertUser, Game, InsertGame, Player, InsertPlayer, CashOutRequest, InsertCashOutRequest, Approval, InsertApproval } from "@shared/schema";
+import { users, games, players, cashOutRequests, approvals, friendships, gameInvitations, gameReservations } from "@shared/schema";
+import type { 
+  User, InsertUser, 
+  Game, InsertGame, 
+  Player, InsertPlayer, 
+  CashOutRequest, InsertCashOutRequest, 
+  Approval, InsertApproval,
+  Friendship, InsertFriendship,
+  GameInvitation, InsertGameInvitation,
+  GameReservation, InsertGameReservation
+} from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 
@@ -11,6 +20,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, userData: Partial<User>): Promise<User | undefined>;
   
   // Game methods
   createGame(game: InsertGame): Promise<Game>;
@@ -39,8 +49,29 @@ export interface IStorage {
   getApproval(id: number): Promise<Approval | undefined>;
   getApprovalsByRequest(requestId: number): Promise<Approval[]>;
   
+  // Friend methods
+  createFriendship(friendship: InsertFriendship): Promise<Friendship>;
+  getFriendship(id: number): Promise<Friendship | undefined>;
+  getFriendshipByUsers(userId: number, friendId: number): Promise<Friendship | undefined>;
+  getFriendsByUser(userId: number): Promise<Friendship[]>;
+  updateFriendshipStatus(id: number, status: string): Promise<Friendship | undefined>;
+  
+  // Game Invitation methods
+  createGameInvitation(invitation: InsertGameInvitation): Promise<GameInvitation>;
+  getGameInvitation(id: number): Promise<GameInvitation | undefined>;
+  getGameInvitationsByUser(userId: number): Promise<GameInvitation[]>;
+  getGameInvitationsByGame(gameId: number): Promise<GameInvitation[]>;
+  updateGameInvitationStatus(id: number, status: string): Promise<GameInvitation | undefined>;
+  
+  // Game Reservation methods
+  createGameReservation(reservation: InsertGameReservation): Promise<GameReservation>;
+  getGameReservation(id: number): Promise<GameReservation | undefined>;
+  getGameReservationByUserAndGame(userId: number, gameId: number): Promise<GameReservation | undefined>;
+  getGameReservationsByGame(gameId: number): Promise<GameReservation[]>;
+  updateGameReservationStatus(id: number, status: string): Promise<GameReservation | undefined>;
+  
   // Session storage
-  sessionStore: session.SessionStore;
+  sessionStore: session.Store;
 }
 
 export class MemStorage implements IStorage {
@@ -49,13 +80,19 @@ export class MemStorage implements IStorage {
   private players: Map<number, Player>;
   private cashOutRequests: Map<number, CashOutRequest>;
   private approvals: Map<number, Approval>;
-  sessionStore: session.SessionStore;
+  private friendships: Map<number, Friendship>;
+  private gameInvitations: Map<number, GameInvitation>;
+  private gameReservations: Map<number, GameReservation>;
+  sessionStore: session.Store;
   
   private userIdCounter: number;
   private gameIdCounter: number;
   private playerIdCounter: number;
   private cashOutRequestIdCounter: number;
   private approvalIdCounter: number;
+  private friendshipIdCounter: number;
+  private gameInvitationIdCounter: number;
+  private gameReservationIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -63,12 +100,18 @@ export class MemStorage implements IStorage {
     this.players = new Map();
     this.cashOutRequests = new Map();
     this.approvals = new Map();
+    this.friendships = new Map();
+    this.gameInvitations = new Map();
+    this.gameReservations = new Map();
     
     this.userIdCounter = 1;
     this.gameIdCounter = 1;
     this.playerIdCounter = 1;
     this.cashOutRequestIdCounter = 1;
     this.approvalIdCounter = 1;
+    this.friendshipIdCounter = 1;
+    this.gameInvitationIdCounter = 1;
+    this.gameReservationIdCounter = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // 24 hours

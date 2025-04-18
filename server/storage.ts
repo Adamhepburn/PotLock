@@ -270,6 +270,119 @@ export class MemStorage implements IStorage {
       (approval) => approval.requestId === requestId
     );
   }
+
+  // User update method
+  async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updatedUser = { ...user, ...userData };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+
+  // Friend methods
+  async createFriendship(insertFriendship: InsertFriendship): Promise<Friendship> {
+    const id = this.friendshipIdCounter++;
+    const friendship: Friendship = { ...insertFriendship, id, createdAt: new Date() };
+    this.friendships.set(id, friendship);
+    return friendship;
+  }
+
+  async getFriendship(id: number): Promise<Friendship | undefined> {
+    return this.friendships.get(id);
+  }
+
+  async getFriendshipByUsers(userId: number, friendId: number): Promise<Friendship | undefined> {
+    return Array.from(this.friendships.values()).find(
+      (friendship) => 
+        (friendship.userId === userId && friendship.friendId === friendId) ||
+        (friendship.userId === friendId && friendship.friendId === userId)
+    );
+  }
+
+  async getFriendsByUser(userId: number): Promise<Friendship[]> {
+    return Array.from(this.friendships.values()).filter(
+      (friendship) => 
+        (friendship.userId === userId || friendship.friendId === userId) &&
+        friendship.status === 'accepted'
+    );
+  }
+
+  async updateFriendshipStatus(id: number, status: string): Promise<Friendship | undefined> {
+    const friendship = this.friendships.get(id);
+    if (!friendship) return undefined;
+    
+    const updatedFriendship = { ...friendship, status };
+    this.friendships.set(id, updatedFriendship);
+    return updatedFriendship;
+  }
+
+  // Game Invitation methods
+  async createGameInvitation(insertInvitation: InsertGameInvitation): Promise<GameInvitation> {
+    const id = this.gameInvitationIdCounter++;
+    const invitation: GameInvitation = { ...insertInvitation, id, createdAt: new Date() };
+    this.gameInvitations.set(id, invitation);
+    return invitation;
+  }
+
+  async getGameInvitation(id: number): Promise<GameInvitation | undefined> {
+    return this.gameInvitations.get(id);
+  }
+
+  async getGameInvitationsByUser(userId: number): Promise<GameInvitation[]> {
+    return Array.from(this.gameInvitations.values()).filter(
+      (invitation) => invitation.inviteeId === userId
+    );
+  }
+
+  async getGameInvitationsByGame(gameId: number): Promise<GameInvitation[]> {
+    return Array.from(this.gameInvitations.values()).filter(
+      (invitation) => invitation.gameId === gameId
+    );
+  }
+
+  async updateGameInvitationStatus(id: number, status: string): Promise<GameInvitation | undefined> {
+    const invitation = this.gameInvitations.get(id);
+    if (!invitation) return undefined;
+    
+    const updatedInvitation = { ...invitation, status };
+    this.gameInvitations.set(id, updatedInvitation);
+    return updatedInvitation;
+  }
+
+  // Game Reservation methods
+  async createGameReservation(insertReservation: InsertGameReservation): Promise<GameReservation> {
+    const id = this.gameReservationIdCounter++;
+    const reservation: GameReservation = { ...insertReservation, id, createdAt: new Date() };
+    this.gameReservations.set(id, reservation);
+    return reservation;
+  }
+
+  async getGameReservation(id: number): Promise<GameReservation | undefined> {
+    return this.gameReservations.get(id);
+  }
+
+  async getGameReservationByUserAndGame(userId: number, gameId: number): Promise<GameReservation | undefined> {
+    return Array.from(this.gameReservations.values()).find(
+      (reservation) => reservation.userId === userId && reservation.gameId === gameId
+    );
+  }
+
+  async getGameReservationsByGame(gameId: number): Promise<GameReservation[]> {
+    return Array.from(this.gameReservations.values()).filter(
+      (reservation) => reservation.gameId === gameId
+    );
+  }
+
+  async updateGameReservationStatus(id: number, status: string): Promise<GameReservation | undefined> {
+    const reservation = this.gameReservations.get(id);
+    if (!reservation) return undefined;
+    
+    const updatedReservation = { ...reservation, status };
+    this.gameReservations.set(id, updatedReservation);
+    return updatedReservation;
+  }
 }
 
 export const storage = new MemStorage();

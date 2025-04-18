@@ -2,7 +2,15 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { insertGameSchema, insertPlayerSchema, insertCashOutRequestSchema, insertApprovalSchema } from "@shared/schema";
+import { 
+  insertGameSchema, 
+  insertPlayerSchema, 
+  insertCashOutRequestSchema, 
+  insertApprovalSchema,
+  insertFriendshipSchema,
+  insertGameInvitationSchema,
+  insertGameReservationSchema
+} from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { nanoid } from "nanoid";
@@ -383,6 +391,450 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       res.json(approvalsWithUserInfo);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Friend System Routes
+  // Send friend request
+  app.post("/api/friends/request", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { username } = req.body;
+      if (!username) {
+        return res.status(400).json({ message: "Username is required" });
+      }
+
+      // Find the user by username
+      const friend = await storage.getUserByUsername(username);
+      if (!friend) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Can't send friend request to yourself
+      if (friend.id === req.user.id) {
+        return res.status(400).json({ message: "You cannot send a friend request to yourself" });
+      }
+
+      // Check if a friendship already exists
+      const existingFriendship = await storage.getFriendshipByUsers(req.user.id, friend.id);
+      if (existingFriendship) {
+        return res.status(400).json({ 
+          message: "Friend request already exists", 
+          status: existingFriendship.status 
+        });
+      }
+
+      // Create friendship record
+      const friendshipData = insertFriendshipSchema.parse({
+        userId: req.user.id,
+        friendId: friend.id,
+        status: "pending"
+      });
+
+      const friendship = await storage.createFriendship(friendshipData);
+      res.status(201).json(friendship);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      next(error);
+    }
+  });
+
+  // Get friend requests
+  app.get("/api/friends/requests", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      // Get all pending requests where I'm the friend
+      const pendingRequests = Array.from(await storage.getFriendsByUser(req.user.id))
+        .filter(friendship => 
+          friendship.status === "pending" && friendship.friendId === req.user.id
+        );
+
+      // Get user info for each friendship
+      const requestsWithUserInfo = await Promise.all(
+        pendingRequests.map(async (request) => {
+          const user = await storage.getUser(request.userId);
+          return {
+            ...request,
+            username: user?.username || "Unknown",
+            displayName: user?.displayName || user?.username || "Unknown",
+            profileImage: user?.profileImage || null
+          };
+        })
+      );
+
+      res.json(requestsWithUserInfo);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Respond to a friend request
+  app.post("/api/friends/respond", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { friendshipId, accept } = req.body;
+      if (!friendshipId || accept === undefined) {
+        return res.status(400).json({ message: "Friendship ID and response are required" });
+      }
+
+      // Find the friendship
+      const friendship = await storage.getFriendship(parseInt(friendshipId));
+      if (!friendship) {
+        return res.status(404).json({ message: "Friend request not found" });
+      }
+
+      // Verify the friendship involves the current user
+      if (friendship.friendId !== req.user.id) {
+        return res.status(403).json({ message: "You cannot respond to this friend request" });
+      }
+
+      // Update friendship status
+      const status = accept ? "accepted" : "rejected";
+      const updatedFriendship = await storage.updateFriendshipStatus(friendship.id, status);
+      res.json(updatedFriendship);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Get all friends
+  app.get("/api/friends", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      // Get all accepted friendships
+      const friendships = await storage.getFriendsByUser(req.user.id);
+
+      // Get user info for each friendship
+      const friendsWithInfo = await Promise.all(
+        friendships.map(async (friendship) => {
+          // Determine which user ID is the friend (not the current user)
+          const friendId = friendship.userId === req.user.id ? 
+            friendship.friendId : friendship.userId;
+          
+          const user = await storage.getUser(friendId);
+          return {
+            id: friendship.id,
+            user: {
+              id: user?.id,
+              username: user?.username || "Unknown",
+              displayName: user?.displayName || user?.username || "Unknown",
+              profileImage: user?.profileImage || null
+            },
+            createdAt: friendship.createdAt
+          };
+        })
+      );
+
+      res.json(friendsWithInfo);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Game Invitation Routes
+  // Invite a friend to a game
+  app.post("/api/games/:id/invite", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const gameId = parseInt(req.params.id);
+      if (isNaN(gameId)) {
+        return res.status(400).json({ message: "Invalid game ID" });
+      }
+
+      const { friendId } = req.body;
+      if (!friendId) {
+        return res.status(400).json({ message: "Friend ID is required" });
+      }
+
+      // Find the game
+      const game = await storage.getGame(gameId);
+      if (!game) {
+        return res.status(404).json({ message: "Game not found" });
+      }
+
+      // Check if the user is associated with the game
+      const isCreator = game.createdById === req.user.id;
+      const isPlayer = await storage.getPlayerByUserAndGame(req.user.id, gameId);
+      
+      if (!isCreator && !isPlayer) {
+        return res.status(403).json({ message: "You're not associated with this game" });
+      }
+
+      // Find the friend
+      const friend = await storage.getUser(parseInt(friendId));
+      if (!friend) {
+        return res.status(404).json({ message: "Friend not found" });
+      }
+
+      // Check if there's an existing friendship
+      const friendship = await storage.getFriendshipByUsers(req.user.id, friend.id);
+      if (!friendship || friendship.status !== "accepted") {
+        return res.status(403).json({ message: "You can only invite friends to games" });
+      }
+
+      // Check if there's an existing invitation
+      const invitations = await storage.getGameInvitationsByGame(gameId);
+      const existingInvite = invitations.find(
+        inv => inv.inviterId === req.user.id && inv.inviteeId === friend.id && inv.status === "pending"
+      );
+      
+      if (existingInvite) {
+        return res.status(400).json({ message: "Invitation already sent" });
+      }
+
+      // Create a new invitation
+      const invitationData = insertGameInvitationSchema.parse({
+        gameId,
+        inviterId: req.user.id,
+        inviteeId: friend.id,
+        status: "pending"
+      });
+
+      const invitation = await storage.createGameInvitation(invitationData);
+      res.status(201).json(invitation);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      next(error);
+    }
+  });
+
+  // Get game invitations for the current user
+  app.get("/api/invitations", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const invitations = await storage.getGameInvitationsByUser(req.user.id);
+      
+      // Get additional info for each invitation
+      const invitationsWithInfo = await Promise.all(
+        invitations.map(async (invitation) => {
+          const game = await storage.getGame(invitation.gameId);
+          const inviter = await storage.getUser(invitation.inviterId);
+          
+          return {
+            ...invitation,
+            game: {
+              name: game?.name || "Unknown Game",
+              buyInAmount: game?.buyInAmount || "0",
+              code: game?.code || "",
+              createdAt: game?.createdAt || new Date()
+            },
+            inviter: {
+              username: inviter?.username || "Unknown",
+              displayName: inviter?.displayName || inviter?.username || "Unknown",
+              profileImage: inviter?.profileImage || null
+            }
+          };
+        })
+      );
+
+      res.json(invitationsWithInfo);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Respond to a game invitation
+  app.post("/api/invitations/:id/respond", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const invitationId = parseInt(req.params.id);
+      if (isNaN(invitationId)) {
+        return res.status(400).json({ message: "Invalid invitation ID" });
+      }
+
+      const { accept } = req.body;
+      if (accept === undefined) {
+        return res.status(400).json({ message: "Response is required" });
+      }
+
+      // Find the invitation
+      const invitation = await storage.getGameInvitation(invitationId);
+      if (!invitation) {
+        return res.status(404).json({ message: "Invitation not found" });
+      }
+
+      // Verify the invitation is for the current user
+      if (invitation.inviteeId !== req.user.id) {
+        return res.status(403).json({ message: "You cannot respond to this invitation" });
+      }
+
+      // Update invitation status
+      const status = accept ? "accepted" : "declined";
+      const updatedInvitation = await storage.updateGameInvitationStatus(invitation.id, status);
+      
+      // If accepted, create a reservation
+      if (accept) {
+        const game = await storage.getGame(invitation.gameId);
+        if (game) {
+          // Check if there's already a reservation
+          const existingReservation = await storage.getGameReservationByUserAndGame(
+            req.user.id, invitation.gameId
+          );
+          
+          if (!existingReservation) {
+            // Create a reservation
+            const reservationData = insertGameReservationSchema.parse({
+              gameId: invitation.gameId,
+              userId: req.user.id,
+              depositAmount: "0", // No deposit initially
+              status: "pending"
+            });
+            
+            await storage.createGameReservation(reservationData);
+          }
+        }
+      }
+      
+      res.json(updatedInvitation);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      next(error);
+    }
+  });
+
+  // Game Reservations
+  // Make a deposit to reserve a spot
+  app.post("/api/games/:id/reserve", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const gameId = parseInt(req.params.id);
+      if (isNaN(gameId)) {
+        return res.status(400).json({ message: "Invalid game ID" });
+      }
+
+      const { depositAmount, transactionHash } = req.body;
+      if (!depositAmount || !transactionHash) {
+        return res.status(400).json({ message: "Deposit amount and transaction hash are required" });
+      }
+
+      // Find the game
+      const game = await storage.getGame(gameId);
+      if (!game) {
+        return res.status(404).json({ message: "Game not found" });
+      }
+
+      // Check if there's an existing reservation
+      const existingReservation = await storage.getGameReservationByUserAndGame(req.user.id, gameId);
+      
+      if (existingReservation && existingReservation.status === "confirmed") {
+        return res.status(400).json({ message: "You already have a confirmed reservation" });
+      }
+
+      let reservation;
+      if (existingReservation) {
+        // Update the existing reservation
+        reservation = await storage.updateGameReservationStatus(existingReservation.id, "confirmed");
+        
+        // Update the deposit amount and transaction hash
+        // Note: This is a simplified approach; in a real app you would verify the transaction on the blockchain
+        reservation = {
+          ...reservation,
+          depositAmount,
+          transactionHash
+        };
+      } else {
+        // Create a new reservation
+        const reservationData = insertGameReservationSchema.parse({
+          gameId,
+          userId: req.user.id,
+          depositAmount,
+          transactionHash,
+          status: "confirmed"
+        });
+        
+        reservation = await storage.createGameReservation(reservationData);
+      }
+      
+      res.status(201).json(reservation);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      next(error);
+    }
+  });
+
+  // Get reservations for a game
+  app.get("/api/games/:id/reservations", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const gameId = parseInt(req.params.id);
+      if (isNaN(gameId)) {
+        return res.status(400).json({ message: "Invalid game ID" });
+      }
+
+      // Find the game
+      const game = await storage.getGame(gameId);
+      if (!game) {
+        return res.status(404).json({ message: "Game not found" });
+      }
+
+      // Check if the user is associated with the game
+      const isCreator = game.createdById === req.user.id;
+      const isPlayer = await storage.getPlayerByUserAndGame(req.user.id, gameId);
+      
+      if (!isCreator && !isPlayer) {
+        return res.status(403).json({ message: "You're not associated with this game" });
+      }
+
+      const reservations = await storage.getGameReservationsByGame(gameId);
+      
+      // Get user info for each reservation
+      const reservationsWithInfo = await Promise.all(
+        reservations.map(async (reservation) => {
+          const user = await storage.getUser(reservation.userId);
+          
+          return {
+            ...reservation,
+            user: {
+              username: user?.username || "Unknown",
+              displayName: user?.displayName || user?.username || "Unknown",
+              profileImage: user?.profileImage || null
+            }
+          };
+        })
+      );
+      
+      res.json(reservationsWithInfo);
     } catch (error) {
       next(error);
     }

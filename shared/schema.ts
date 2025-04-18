@@ -8,9 +8,9 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   email: text("email").notNull().unique(),
-  walletAddress: text("wallet_address"),
-  displayName: text("display_name"),
-  profileImage: text("profile_image"),
+  walletAddress: text("wallet_address").default(null),
+  displayName: text("display_name").default(null),
+  profileImage: text("profile_image").default(null),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -21,8 +21,8 @@ export const games = pgTable("games", {
   code: text("code").notNull().unique(),
   buyInAmount: numeric("buy_in_amount").notNull(),
   status: text("status").notNull().default("active"),
-  bankerAddress: text("banker_address"),
-  contractAddress: text("contract_address"),
+  bankerAddress: text("banker_address").default(null),
+  contractAddress: text("contract_address").default(null),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   createdById: integer("created_by_id").notNull().references(() => users.id),
 });
@@ -105,9 +105,9 @@ export const insertUserSchema = createInsertSchema(users, {
   email: z.string().email(),
   username: z.string().min(3).max(50),
   password: z.string().min(8),
-  walletAddress: z.string().optional(),
-  displayName: z.string().optional(),
-  profileImage: z.string().optional(),
+  walletAddress: z.string().nullable().optional(),
+  displayName: z.string().nullable().optional(),
+  profileImage: z.string().nullable().optional(),
 });
 
 export const insertGameSchema = createInsertSchema(games).omit({ id: true, createdAt: true });

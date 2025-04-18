@@ -281,10 +281,10 @@ export default function ProfilePage() {
               variant="outline" 
               size="sm" 
               className="flex items-center whitespace-nowrap"
-              onClick={() => navigate("/wallet")}
+              onClick={isConnected ? handleDisconnectWallet : handleConnectWallet}
             >
               <Wallet className="h-4 w-4 mr-1" />
-              {isConnected ? "Manage Wallet" : "Connect Wallet"}
+              {isConnected ? "Disconnect Wallet" : "Connect Wallet"}
             </Button>
             <Button 
               variant="outline" 
@@ -299,7 +299,7 @@ export default function ProfilePage() {
               variant="outline" 
               size="sm" 
               className="flex items-center whitespace-nowrap"
-              onClick={() => navigate("/cash-out")}
+              onClick={() => navigate("/cashout/1")}
             >
               <DollarSign className="h-4 w-4 mr-1" />
               Cash Out
@@ -308,10 +308,10 @@ export default function ProfilePage() {
               variant="outline" 
               size="sm" 
               className="flex items-center whitespace-nowrap"
-              onClick={() => navigate("/settings")}
+              onClick={handleLogout}
             >
               <Settings className="h-4 w-4 mr-1" />
-              Settings
+              Logout
             </Button>
           </div>
         )}

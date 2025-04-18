@@ -5,23 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/hooks/use-auth";
 
 export default function ProfilePage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { user: authUser, logoutMutation } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
   
-  // Use real user data from auth context if available
+  // Demo user data (simulated)
   const user = {
-    username: authUser?.username || "Demo User",
-    email: authUser?.email || "demo@example.com",
+    username: "Demo User",
+    email: "demo@example.com",
     walletAddress: address || "Not connected",
-    joinDate: authUser?.createdAt ? new Date(authUser.createdAt) : new Date(),
+    joinDate: new Date(),
   };
   
   // Check for stored wallet connection on load
@@ -70,7 +68,7 @@ export default function ProfilePage() {
     });
   };
   
-  // Handle logout using auth context
+  // Handle logout (simulated)
   const handleLogout = () => {
     setIsLoggingOut(true);
     
@@ -79,26 +77,15 @@ export default function ProfilePage() {
       handleDisconnectWallet();
     }
     
-    // Use auth logout mutation
-    logoutMutation.mutate(undefined, {
-      onSuccess: () => {
-        toast({
-          title: "Logged out",
-          description: "You have been successfully logged out.",
-        });
-        navigate("/auth");
-      },
-      onError: (error: Error) => {
-        toast({
-          title: "Logout failed",
-          description: error.message || "Failed to log out. Please try again.",
-          variant: "destructive",
-        });
-      },
-      onSettled: () => {
-        setIsLoggingOut(false);
-      }
-    });
+    // Simulate logout process
+    setTimeout(() => {
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out.",
+      });
+      setIsLoggingOut(false);
+      navigate("/auth");
+    }, 1000);
   };
 
   return (

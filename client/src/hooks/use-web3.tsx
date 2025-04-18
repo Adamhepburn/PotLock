@@ -3,13 +3,17 @@ import { useToast } from "@/hooks/use-toast";
 import escrowABI from "../contracts/EscrowContract.json";
 import { ethers } from "ethers";
 import { apiRequest, queryClient } from "../lib/queryClient";
+import CoinbaseWalletSDK from "@coinbase/wallet-sdk";
 
-// Add the window.ethereum type
-declare global {
-  interface Window {
-    ethereum: any;
-  }
-}
+// Coinbase Wallet configuration
+const APP_NAME = "PokerEscrow";
+const APP_LOGO_URL = "https://example.com/logo.png";
+const DEFAULT_ETH_JSONRPC_URL = "https://mainnet.base.org"; // Base mainnet RPC URL
+const DEFAULT_CHAIN_ID = 8453; // Base mainnet
+
+// Create Coinbase Wallet provider instance
+let coinbaseWallet: any = null;
+let coinbaseProvider: any = null;
 
 // Define Web3 context type
 type Web3ContextType = {
@@ -35,6 +39,23 @@ const USDC_CONTRACT_ADDRESSES: Record<string, string> = {
   "84532": "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
 };
 
+// Initialize Coinbase Wallet
+const initializeCoinbaseWallet = () => {
+  if (!coinbaseWallet) {
+    coinbaseWallet = new CoinbaseWalletSDK({
+      appName: APP_NAME,
+      appLogoUrl: APP_LOGO_URL,
+      darkMode: false
+    });
+    
+    coinbaseProvider = coinbaseWallet.makeWeb3Provider(
+      DEFAULT_ETH_JSONRPC_URL, 
+      DEFAULT_CHAIN_ID
+    );
+  }
+  return coinbaseProvider;
+};
+
 // Create a provider component
 export function Web3Provider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
@@ -47,18 +68,20 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   const [networkName, setNetworkName] = useState<string | null>(null);
   const [chainId, setChainId] = useState<number | null>(null);
 
-  // Effect to check if metamask is already connected
+  // Effect to check if Coinbase Wallet is already connected
   useEffect(() => {
     const checkConnection = async () => {
-      // Check if MetaMask is installed
-      if (typeof window.ethereum !== 'undefined') {
-        try {
-          // Get accounts
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+      try {
+        // Initialize Coinbase Wallet
+        const provider = initializeCoinbaseWallet();
+        
+        if (provider) {
+          // Check if user is already connected
+          const accounts = await provider.request({ method: 'eth_accounts' });
           
-          if (accounts.length > 0) {
+          if (accounts && accounts.length > 0) {
             // User is already connected
-            const ethersProvider = new ethers.BrowserProvider(window.ethereum);
+            const ethersProvider = new ethers.BrowserProvider(provider);
             const ethersSigner = await ethersProvider.getSigner();
             const network = await ethersProvider.getNetwork();
             
@@ -77,9 +100,9 @@ export function Web3Provider({ children }: { children: ReactNode }) {
               console.log("Not updating wallet address - user may not be logged in");
             }
           }
-        } catch (error) {
-          console.error("Error checking connection:", error);
         }
+      } catch (error) {
+        console.error("Error checking connection:", error);
       }
     };
 
@@ -88,7 +111,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
 
   // Set up event listeners for account and chain changes
   useEffect(() => {
-    if (typeof window.ethereum !== 'undefined') {
+    if (coinbaseProvider && provider) {
       // Handle account changes
       const handleAccountsChanged = async (accounts: string[]) => {
         if (accounts.length === 0) {
@@ -121,23 +144,26 @@ export function Web3Provider({ children }: { children: ReactNode }) {
       };
 
       // Subscribe to events
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      window.ethereum.on('chainChanged', handleChainChanged);
+      coinbaseProvider.on('accountsChanged', handleAccountsChanged);
+      coinbaseProvider.on('chainChanged', handleChainChanged);
 
       // Cleanup function
       return () => {
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        window.ethereum.removeListener('chainChanged', handleChainChanged);
+        coinbaseProvider.removeListener('accountsChanged', handleAccountsChanged);
+        coinbaseProvider.removeListener('chainChanged', handleChainChanged);
       };
     }
   }, [provider, address]);
 
   // Connect wallet function
   const connectWallet = async () => {
-    if (typeof window.ethereum === 'undefined') {
+    // Initialize Coinbase Wallet if not already initialized
+    const provider = initializeCoinbaseWallet();
+    
+    if (!provider) {
       toast({
-        title: "MetaMask not found",
-        description: "Please install MetaMask to use this feature.",
+        title: "Wallet connection failed",
+        description: "Coinbase Wallet provider not initialized",
         variant: "destructive",
       });
       return;
@@ -147,9 +173,9 @@ export function Web3Provider({ children }: { children: ReactNode }) {
 
     try {
       // Request accounts access
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const accounts = await provider.request({ method: 'eth_requestAccounts' });
       
-      const ethersProvider = new ethers.BrowserProvider(window.ethereum);
+      const ethersProvider = new ethers.BrowserProvider(provider);
       const ethersSigner = await ethersProvider.getSigner();
       const network = await ethersProvider.getNetwork();
       
@@ -186,6 +212,10 @@ export function Web3Provider({ children }: { children: ReactNode }) {
 
   // Disconnect wallet function
   const disconnectWallet = () => {
+    if (coinbaseWallet) {
+      coinbaseWallet.disconnect();
+    }
+    
     setProvider(null);
     setSigner(null);
     setAddress(null);

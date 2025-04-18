@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 
 export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
   const [, navigate] = useLocation();
   const { toast } = useToast();
   
@@ -60,32 +59,7 @@ export default function AuthPage() {
     }
   }
 
-  // Handle Coinbase Wallet login
-  async function handleCoinbaseWalletLogin() {
-    setIsConnecting(true);
-    
-    try {
-      // Simulate wallet connection for demo purposes
-      // In a real app, we would use the actual Coinbase Wallet connection
-      setTimeout(() => {
-        toast({
-          title: "Wallet connected",
-          description: "Your Coinbase Wallet has been connected successfully!",
-        });
-        navigate("/games");
-      }, 1500);
-    } catch (error: any) {
-      toast({
-        title: "Connection failed",
-        description: error.message || "Failed to connect wallet",
-        variant: "destructive",
-      });
-    } finally {
-      setTimeout(() => {
-        setIsConnecting(false);
-      }, 1500);
-    }
-  }
+
 
   return (
     <div className="auth-screen h-screen flex flex-col p-6">
@@ -171,18 +145,7 @@ export default function AuthPage() {
                   </Button>
                 </form>
                 
-                <div className="relative flex items-center justify-center my-6">
-                  <div className="border-t border-gray-300 w-full"></div>
-                  <div className="absolute bg-white px-3 text-sm text-gray-500">or</div>
-                </div>
-                
-                <Button 
-                  className="w-full bg-blue-700 hover:bg-blue-800 text-white"
-                  onClick={handleCoinbaseWalletLogin}
-                  disabled={isConnecting}
-                >
-                  {isConnecting ? "Connecting..." : `${isRegister ? "Sign Up" : "Connect"} with Coinbase Wallet`}
-                </Button>
+
               </div>
             </CardContent>
           </Card>

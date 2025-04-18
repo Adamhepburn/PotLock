@@ -10,13 +10,45 @@ export default function ProfilePage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [address, setAddress] = useState<string | null>(null);
   
   // Sample user data (would normally come from auth context)
   const user = {
     username: "aaa",
     email: "aaaa@gmail.com",
-    walletAddress: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+    walletAddress: address || "Not connected",
     joinedAt: new Date().toISOString(),
+  };
+  
+  // Handle wallet connection
+  const handleConnectWallet = async () => {
+    setIsConnecting(true);
+    try {
+      await connectWallet();
+      toast({
+        title: "Wallet connected",
+        description: "Coinbase Wallet has been connected successfully!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Connection failed",
+        description: error.message || "Failed to connect wallet",
+        variant: "destructive",
+      });
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+  
+  // Handle wallet disconnection
+  const handleDisconnectWallet = () => {
+    disconnectWallet();
+    toast({
+      title: "Wallet disconnected",
+      description: "Your wallet has been disconnected.",
+    });
   };
   
   // Handle logout
@@ -77,18 +109,47 @@ export default function ProfilePage() {
           <CardContent>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <div className="text-sm text-gray-500">Connected Wallet</div>
+                <div className="text-sm text-gray-500">Wallet Status</div>
                 <div className="font-medium flex items-center">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                  <span>Coinbase Wallet</span>
+                  <div className={`w-2 h-2 ${isConnected ? "bg-green-500" : "bg-gray-400"} rounded-full mr-2`}></div>
+                  <span>{isConnected ? "Connected to Coinbase Wallet" : "Not connected"}</span>
                 </div>
               </div>
-              <Button variant="outline" size="sm">Change</Button>
+              {isConnected ? (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleDisconnectWallet}
+                >
+                  Disconnect
+                </Button>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleConnectWallet}
+                  disabled={isConnecting}
+                >
+                  {isConnecting ? "Connecting..." : "Connect Wallet"}
+                </Button>
+              )}
             </div>
             
             <div className="bg-gray-50 p-3 rounded-md font-mono text-sm break-all">
-              {user.walletAddress}
+              {address || "No wallet connected"}
             </div>
+            
+            {!isConnected && (
+              <div className="mt-4">
+                <Button 
+                  className="w-full bg-blue-700 hover:bg-blue-800 text-white"
+                  onClick={handleConnectWallet}
+                  disabled={isConnecting}
+                >
+                  {isConnecting ? "Connecting..." : "Connect Coinbase Wallet"}
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
         

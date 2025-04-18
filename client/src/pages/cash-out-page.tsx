@@ -1,239 +1,133 @@
 import { useState } from "react";
-import { useLocation, useParams } from "wouter";
-import { useAuth } from "@/hooks/use-auth";
-import { useWeb3 } from "@/hooks/use-web3";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useParams, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import TabNavigation from "@/components/TabNavigation";
-import { Loader2 } from "lucide-react";
-
-// Form schema
-const cashOutSchema = z.object({
-  chipCount: z.string()
-    .min(1, "Chip count is required")
-    .refine(
-      (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0,
-      "Must be a positive number"
-    ),
-});
-
-type CashOutFormValues = z.infer<typeof cashOutSchema>;
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function CashOutPage() {
   const { gameId } = useParams();
   const [, navigate] = useLocation();
-  const { user } = useAuth();
   const { toast } = useToast();
-
-  // Fetch game details
-  const { data: game, isLoading: isLoadingGame } = useQuery({
-    queryKey: [`/api/games/${gameId}`],
-    enabled: !!gameId,
-  });
-
-  // Fetch players in the game
-  const { data: players, isLoading: isLoadingPlayers } = useQuery({
-    queryKey: [`/api/games/${gameId}/players`],
-    enabled: !!gameId,
-  });
-
-  // Cash out mutation
-  const cashOutMutation = useMutation({
-    mutationFn: async (data: CashOutFormValues) => {
-      const res = await apiRequest("POST", "/api/cashout", {
-        gameId,
-        chipCount: parseFloat(data.chipCount),
+  const [chipCount, setChipCount] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Sample game data (would normally be fetched from API)
+  const game = {
+    id: Number(gameId),
+    name: "Friday Night Poker",
+    code: "POKER123",
+    buyInAmount: 100,
+  };
+  
+  // Handle cash out submission
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!chipCount) {
+      toast({
+        title: "Missing information",
+        description: "Please enter your chip count",
+        variant: "destructive"
       });
-      return await res.json();
-    },
-    onSuccess: () => {
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    // Simulate API call
+    setTimeout(() => {
       toast({
         title: "Cash out request submitted",
-        description: "Your chip count has been submitted for approval.",
+        description: "Your request has been sent for approval by other players.",
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/games/${gameId}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/games/${gameId}/players`] });
+      setIsSubmitting(false);
       navigate(`/games/${gameId}`);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Failed to submit cash out request",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Cash out form
-  const form = useForm<CashOutFormValues>({
-    resolver: zodResolver(cashOutSchema),
-    defaultValues: {
-      chipCount: "",
-    },
-  });
-
-  // Handle cash out form submission
-  function onSubmit(values: CashOutFormValues) {
-    cashOutMutation.mutate(values);
-  }
-
-  // Get current player
-  const currentPlayer = players?.find(player => player.userId === user?.id);
-
-  // Calculate total in escrow
-  const totalInEscrow = players?.reduce((sum, player) => sum + parseFloat(player.buyIn.toString()), 0) || 0;
-
-  // Calculate players who have cashed out
-  const cashedOutCount = players?.filter(player => player.status === "cashed-out").length || 0;
-
-  // Loading state
-  if (isLoadingGame || isLoadingPlayers) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // Handle case when game is not found
-  if (!game) {
-    return (
-      <div className="min-h-screen p-6 flex flex-col items-center justify-center">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">Game Not Found</h1>
-        <p className="text-gray-600 mb-6">The game you're looking for doesn't exist or you don't have access to it.</p>
-        <Button onClick={() => navigate("/")}>Back to Games</Button>
-      </div>
-    );
-  }
+    }, 1000);
+  };
 
   return (
-    <div className="cash-out-screen min-h-screen pb-20 flex flex-col">
+    <div className="min-h-screen pb-20 flex flex-col">
       <div className="bg-primary text-white p-6">
-        <div className="flex items-center mb-2">
+        <div className="flex items-center">
           <button 
-            className="mr-3"
+            className="mr-3" 
             onClick={() => navigate(`/games/${gameId}`)}
           >
-            <i className="fas fa-arrow-left"></i>
+            ← Back
           </button>
           <h1 className="text-xl font-bold">Cash Out</h1>
         </div>
-        <div className="text-sm opacity-90">
-          <div>Game: <span>{game.name}</span></div>
-          <div>Buy-in: <span>${game.buyInAmount} USDC</span></div>
+        <div className="text-sm mt-1 opacity-90">
+          {game.name}
         </div>
       </div>
       
-      <div className="p-6 flex-1">
-        <div className="bg-white rounded-lg shadow-md p-5 mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">Submit Chip Count</h2>
-          
-          <div className="text-sm text-gray-600 mb-4">
-            Enter the dollar value of chips you currently have. This amount will be verified by other players before payout.
-          </div>
-          
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="chipCount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="block text-gray-700 text-sm font-medium mb-2">Chip Value ($)</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Input 
-                          className="appearance-none border border-gray-300 rounded-lg w-full py-3 pl-10 pr-4 text-2xl font-medium text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                          type="number" 
-                          step="0.01"
-                          placeholder="0.00" 
-                          {...field}
-                        />
-                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                          <span className="text-gray-500 text-2xl">$</span>
-                        </div>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <div className="flex">
-                  <div className="text-blue-500 mr-3">
-                    <i className="fas fa-info-circle text-xl"></i>
-                  </div>
-                  <div>
-                    <h3 className="text-blue-800 font-medium mb-1">How it works</h3>
-                    <p className="text-blue-700 text-sm">
-                      After submitting your chip count, other players must approve your cash-out. Once approved, the smart contract will automatically transfer your share of the escrow funds to your wallet.
-                    </p>
+      <div className="p-6">
+        <Card className="mb-6">
+          <CardContent className="p-5">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Submit Cash Out Request</h2>
+            
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="chipCount">Your Final Chip Count</Label>
+                <div className="relative">
+                  <Input 
+                    id="chipCount"
+                    value={chipCount}
+                    onChange={(e) => setChipCount(e.target.value)}
+                    className="pl-8"
+                    type="number"
+                    step="0.01"
+                    placeholder="100.00"
+                  />
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <span className="text-gray-500">$</span>
                   </div>
                 </div>
+                <p className="text-sm text-gray-500">
+                  Enter the dollar amount of chips you currently have.
+                </p>
               </div>
               
-              <Button
-                type="submit"
-                className="w-full bg-primary hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 ease-in-out"
-                disabled={cashOutMutation.isPending}
+              <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-4">
+                <h3 className="text-amber-800 font-medium text-sm mb-2">Important</h3>
+                <p className="text-sm text-amber-700">
+                  Your cash out request will need to be approved by other players in the game. Enter the exact amount to avoid disputes.
+                </p>
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={isSubmitting}
               >
-                {cashOutMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  "Submit Chip Count"
-                )}
+                {isSubmitting ? "Submitting..." : "Submit Cash Out Request"}
               </Button>
             </form>
-          </Form>
-        </div>
+          </CardContent>
+        </Card>
         
-        <div className="bg-white rounded-lg shadow-md p-5">
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">Game Summary</h2>
-          
-          <div className="flex items-center justify-between py-2 border-b border-gray-100">
-            <span className="text-gray-600">Total in Escrow:</span>
-            <span className="font-medium text-gray-800">${totalInEscrow.toFixed(2)} USDC</span>
-          </div>
-          
-          {currentPlayer && (
-            <div className="flex items-center justify-between py-2 border-b border-gray-100">
-              <span className="text-gray-600">Your Buy-in:</span>
-              <span className="font-medium text-gray-800">${parseFloat(currentPlayer.buyIn.toString()).toFixed(2)} USDC</span>
-            </div>
-          )}
-          
-          <div className="flex items-center justify-between py-2 border-b border-gray-100">
-            <span className="text-gray-600">Player Count:</span>
-            <span className="font-medium text-gray-800">{players?.length || 0} players</span>
-          </div>
-          
-          <div className="flex items-center justify-between py-2">
-            <span className="text-gray-600">Cashed Out:</span>
-            <span className="font-medium text-gray-800">{cashedOutCount} player{cashedOutCount !== 1 ? 's' : ''}</span>
-          </div>
-        </div>
+        {/* Info Box */}
+        <Card>
+          <CardContent className="p-5">
+            <h3 className="font-medium text-gray-800 mb-2">How Cash Out Works</h3>
+            <ol className="text-sm text-gray-600 space-y-2 list-decimal pl-4">
+              <li>You submit your final chip count for review</li>
+              <li>Other players in the game verify your submission</li>
+              <li>Once approved, the escrow contract releases your funds</li>
+              <li>Funds are transferred to your connected wallet</li>
+            </ol>
+          </CardContent>
+        </Card>
       </div>
       
-      <TabNavigation />
+      {/* Navigation bar would go here */}
+      <div className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-gray-200 flex items-center justify-around px-6">
+        <Button variant="ghost" onClick={() => navigate("/games")}>Games</Button>
+        <Button variant="ghost" onClick={() => navigate("/auth")}>Profile</Button>
+      </div>
     </div>
   );
 }

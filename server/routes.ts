@@ -846,6 +846,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return nanoid(6).toUpperCase();
   }
 
+  // Add a simple test route that doesn't require any authentication
+  app.get("/api/test", (req, res) => {
+    res.json({ status: "ok", message: "Server is running" });
+  });
+
+  // Add a simple HTML route for testing
+  app.get("/test-page", (req, res) => {
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Server Test Page</title>
+        </head>
+        <body>
+          <h1>Server is Running</h1>
+          <p>If you can see this message, the server is running correctly.</p>
+        </body>
+      </html>
+    `);
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

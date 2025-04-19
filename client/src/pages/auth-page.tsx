@@ -1,44 +1,59 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
 
 export default function AuthPage() {
-  const [isLoading, setIsLoading] = useState(false);
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { 
+    user, 
+    loginMutation, 
+    registerMutation,
+    isLoading: authLoading
+  } = useAuth();
   
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [isRegister, setIsRegister] = useState(false);
+  
+  const isLoading = loginMutation.isPending || registerMutation.isPending;
+  
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
 
   // Handle login form submission
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setIsLoading(true);
     
     try {
       if (isRegister) {
         // Register
-        await apiRequest("POST", "/api/register", {
+        await registerMutation.mutateAsync({
           username,
           password,
-          email
+          email,
+          displayName: username
         });
         toast({
           title: "Account created",
           description: "Your account has been created successfully!",
         });
-        navigate("/games");
+        navigate("/dashboard");
       } else {
         // Login
-        await apiRequest("POST", "/api/login", {
+        await loginMutation.mutateAsync({
           username,
           password
         });
@@ -46,7 +61,7 @@ export default function AuthPage() {
           title: "Logged in",
           description: "You have been logged in successfully!",
         });
-        navigate("/games");
+        navigate("/dashboard");
       }
     } catch (error: any) {
       toast({
@@ -54,8 +69,6 @@ export default function AuthPage() {
         description: error.message || "An error occurred",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   }
 
@@ -137,9 +150,9 @@ export default function AuthPage() {
                   <Button 
                     type="submit" 
                     className="w-full"
-                    disabled={isLoading}
+                    disabled={registerMutation.isPending || loginMutation.isPending}
                   >
-                    {isLoading 
+                    {registerMutation.isPending || loginMutation.isPending
                       ? (isRegister ? "Creating account..." : "Logging in...") 
                       : (isRegister ? "Create Account" : "Login")}
                   </Button>

@@ -1,24 +1,60 @@
-import { useState } from "react";
-
 function AppTest() {
-  const [isLoaded, setIsLoaded] = useState(true);
-
+  // Use static HTML without any React features
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
-      <div className="bg-white shadow-md rounded-lg p-8 max-w-md w-full">
-        <h1 className="text-2xl font-bold text-center mb-6 text-blue-600">PotLock Test Page</h1>
+    <div style={{
+      minHeight: "100vh",
+      display: "flex",
+      flexDirection: "column", 
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "#f3f4f6",
+      padding: "1rem"
+    }}>
+      <div style={{
+        backgroundColor: "#ffffff",
+        borderRadius: "0.5rem",
+        boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+        padding: "2rem",
+        maxWidth: "28rem",
+        width: "100%"
+      }}>
+        <h1 style={{
+          fontSize: "1.5rem",
+          fontWeight: "bold",
+          textAlign: "center",
+          marginBottom: "1.5rem",
+          color: "#2563eb"
+        }}>PotLock Minimal Test Page</h1>
         
-        <p className="mb-4 text-gray-700">
+        <p style={{
+          marginBottom: "1rem",
+          color: "#4b5563"
+        }}>
           If you can see this page, the application is loading correctly.
         </p>
         
-        <div className="mb-4 p-4 bg-green-100 text-green-800 rounded-md">
-          ✓ React is rendering correctly
+        <div style={{
+          marginBottom: "1rem",
+          padding: "1rem",
+          backgroundColor: "#d1fae5",
+          color: "#065f46",
+          borderRadius: "0.375rem"
+        }}>
+          ✓ Basic React rendering is working
         </div>
         
         <button 
-          className="w-full py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors"
-          onClick={() => alert("Button works!")}
+          style={{
+            width: "100%",
+            padding: "0.5rem 1rem",
+            backgroundColor: "#2563eb",
+            color: "#ffffff",
+            fontWeight: "600",
+            borderRadius: "0.375rem",
+            border: "none",
+            cursor: "pointer"
+          }}
+          onClick={() => alert("Button clicked!")}
         >
           Test Button
         </button>

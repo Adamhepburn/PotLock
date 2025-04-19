@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useState, useEffect } from "react";
 import {
   useQuery,
   useMutation,
@@ -8,6 +8,21 @@ import { insertUserSchema, User, LoginData } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+
+// Set to true for bypassing real authentication in development
+const USE_DEV_MODE = true;
+
+// Mock user data for development
+const MOCK_USER: User = {
+  id: 999,
+  username: "dev_user",
+  email: "dev@potlock.app",
+  password: "",
+  displayName: "Developer",
+  createdAt: new Date(),
+  walletAddress: "0x123456789abcdef",
+  profileImage: null
+};
 
 type RegisterData = z.infer<typeof insertUserSchema>;
 
@@ -19,23 +34,64 @@ type AuthContextType = {
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<Omit<User, "password">, Error, RegisterData>;
   updateWalletMutation: UseMutationResult<{success: boolean, walletAddress: string}, Error, {walletAddress: string}>;
+  devMode: boolean;
+  toggleDevMode: () => void;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  const [devMode, setDevMode] = useState(USE_DEV_MODE);
+  
+  // Initialize the mock user in development mode
+  useEffect(() => {
+    if (devMode) {
+      queryClient.setQueryData(["/api/user"], MOCK_USER);
+    }
+  }, [devMode]);
+  
   const {
-    data: user,
+    data: serverUser,
     error,
-    isLoading,
+    isLoading: authLoading,
   } = useQuery<User | null, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    // Skip real auth in dev mode
+    enabled: !devMode,
   });
+  
+  // Use mock user in dev mode, real user otherwise
+  const user = devMode ? MOCK_USER : (serverUser ?? null);
+  const isLoading = devMode ? false : authLoading;
+  
+  // Function to toggle development mode
+  const toggleDevMode = () => {
+    const newMode = !devMode;
+    setDevMode(newMode);
+    
+    if (newMode) {
+      queryClient.setQueryData(["/api/user"], MOCK_USER);
+      toast({
+        title: "Developer Mode Enabled",
+        description: "Using mock user for authentication",
+      });
+    } else {
+      queryClient.setQueryData(["/api/user"], null);
+      toast({
+        title: "Developer Mode Disabled",
+        description: "Using real authentication",
+      });
+    }
+  };
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
+      if (devMode) {
+        // In dev mode, return mock user without calling API
+        return { ...MOCK_USER, username: credentials.username };
+      }
       const res = await apiRequest("POST", "/api/login", credentials);
       return await res.json();
     },
@@ -57,6 +113,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async (userData: RegisterData) => {
+      if (devMode) {
+        // In dev mode, return mock user merged with provided data
+        return { 
+          ...MOCK_USER, 
+          username: userData.username,
+          email: userData.email,
+          displayName: userData.displayName
+        };
+      }
       const res = await apiRequest("POST", "/api/register", userData);
       return await res.json();
     },
@@ -78,6 +143,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
+      if (devMode) {
+        // In dev mode, simulate logout without API call
+        return;
+      }
       await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
@@ -86,6 +155,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Logged out",
         description: "You have been successfully logged out.",
       });
+      
+      // If in dev mode, automatically log back in after short delay
+      if (devMode) {
+        setTimeout(() => {
+          queryClient.setQueryData(["/api/user"], MOCK_USER);
+        }, 500);
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -98,6 +174,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const updateWalletMutation = useMutation({
     mutationFn: async ({ walletAddress }: { walletAddress: string }) => {
+      if (devMode) {
+        // In dev mode, simulate successful wallet connection
+        return { success: true, walletAddress };
+      }
       const res = await apiRequest("POST", "/api/user/wallet", { walletAddress });
       return await res.json();
     },
@@ -133,6 +213,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logoutMutation,
         registerMutation,
         updateWalletMutation,
+        devMode,
+        toggleDevMode,
       }}
     >
       {children}

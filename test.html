@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Page</title>
+</head>
+<body>
+  <h1>Test Page</h1>
+  <p>If you can see this, the server is working correctly.</p>
+  <script>
+    // Test if we can make a fetch request to the API
+    fetch('/api/user')
+      .then(response => {
+        if (response.status === 401) {
+          document.body.innerHTML += '<p>API returned 401 (Not authenticated) - This is expected and means the API is working.</p>';
+        } else {
+          return response.json().then(data => {
+            document.body.innerHTML += '<p>API returned: ' + JSON.stringify(data) + '</p>';
+          });
+        }
+      })
+      .catch(error => {
+        document.body.innerHTML += '<p>Error fetching API: ' + error.message + '</p>';
+      });
+  </script>
+</body>
+</html>

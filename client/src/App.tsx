@@ -1,5 +1,7 @@
 import { Switch, Route } from "wouter";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/hooks/use-auth";
+import { Web3Provider } from "@/hooks/use-web3";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import ProfilePage from "@/pages/profile-page";
@@ -14,24 +16,28 @@ import DashboardPage from "@/pages/dashboard-page";
 
 function App() {
   return (
-    <TooltipProvider>
-      <Switch>
-        <Route path="/" component={DashboardPage} />
-        <Route path="/auth" component={AuthPage} />
-        <Route path="/dashboard" component={DashboardPage} />
-        <Route path="/profile" component={ProfilePage} />
-        <Route path="/profile/:userId" component={ProfilePage} />
-        <Route path="/games" component={GameSetupPage} />
-        <Route path="/games/:id" component={GameDetailPage} />
-        <Route path="/cash-out" component={CashOutPage} />
-        <Route path="/cashout/:gameId" component={CashOutPage} />
-        <Route path="/approval/:requestId" component={ApprovalPage} />
-        <Route path="/staking" component={StakingPage} />
-        <Route path="/wallet" component={WalletPage} />
-        <Route path="/settings" component={SettingsPage} />
-        <Route component={NotFound} />
-      </Switch>
-    </TooltipProvider>
+    <Web3Provider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Switch>
+            <Route path="/" component={DashboardPage} />
+            <Route path="/auth" component={AuthPage} />
+            <Route path="/dashboard" component={DashboardPage} />
+            <Route path="/profile" component={ProfilePage} />
+            <Route path="/profile/:userId" component={ProfilePage} />
+            <Route path="/games" component={GameSetupPage} />
+            <Route path="/games/:id" component={GameDetailPage} />
+            <Route path="/cash-out" component={CashOutPage} />
+            <Route path="/cashout/:gameId" component={CashOutPage} />
+            <Route path="/approval/:requestId" component={ApprovalPage} />
+            <Route path="/staking" component={StakingPage} />
+            <Route path="/wallet" component={WalletPage} />
+            <Route path="/settings" component={SettingsPage} />
+            <Route component={NotFound} />
+          </Switch>
+        </TooltipProvider>
+      </AuthProvider>
+    </Web3Provider>
   );
 }
 

@@ -1,5 +1,9 @@
 import { Switch, Route } from "wouter";
+import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/hooks/use-auth";
+import { Web3Provider } from "@/hooks/use-web3";
+import { ProtectedRoute } from "@/lib/protected-route";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import ProfilePage from "@/pages/profile-page";
@@ -14,24 +18,29 @@ import DashboardPage from "@/pages/dashboard-page";
 
 function App() {
   return (
-    <TooltipProvider>
-      <Switch>
-        <Route path="/" component={DashboardPage} />
-        <Route path="/auth" component={AuthPage} />
-        <Route path="/dashboard" component={DashboardPage} />
-        <Route path="/profile" component={ProfilePage} />
-        <Route path="/profile/:userId" component={ProfilePage} />
-        <Route path="/games" component={GameSetupPage} />
-        <Route path="/games/:id" component={GameDetailPage} />
-        <Route path="/cash-out" component={CashOutPage} />
-        <Route path="/cashout/:gameId" component={CashOutPage} />
-        <Route path="/approval/:requestId" component={ApprovalPage} />
-        <Route path="/staking" component={StakingPage} />
-        <Route path="/wallet" component={WalletPage} />
-        <Route path="/settings" component={SettingsPage} />
-        <Route component={NotFound} />
-      </Switch>
-    </TooltipProvider>
+    <AuthProvider>
+      <Web3Provider>
+        <TooltipProvider>
+          <Switch>
+            <ProtectedRoute path="/" component={DashboardPage} />
+            <Route path="/auth" component={AuthPage} />
+            <ProtectedRoute path="/dashboard" component={DashboardPage} />
+            <ProtectedRoute path="/profile" component={ProfilePage} />
+            <ProtectedRoute path="/profile/:userId" component={ProfilePage} />
+            <ProtectedRoute path="/games" component={GameSetupPage} />
+            <ProtectedRoute path="/games/:id" component={GameDetailPage} />
+            <ProtectedRoute path="/cash-out" component={CashOutPage} />
+            <ProtectedRoute path="/cashout/:gameId" component={CashOutPage} />
+            <ProtectedRoute path="/approval/:requestId" component={ApprovalPage} />
+            <ProtectedRoute path="/staking" component={StakingPage} />
+            <ProtectedRoute path="/wallet" component={WalletPage} />
+            <ProtectedRoute path="/settings" component={SettingsPage} />
+            <Route component={NotFound} />
+          </Switch>
+          <Toaster />
+        </TooltipProvider>
+      </Web3Provider>
+    </AuthProvider>
   );
 }
 

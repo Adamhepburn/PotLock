@@ -15,6 +15,7 @@ import StakingPage from "@/pages/staking-page";
 import WalletPage from "@/pages/wallet-page";
 import SettingsPage from "@/pages/settings-page";
 import DashboardPage from "@/pages/dashboard-page";
+import AboutPage from "@/pages/about-page";
 import TopNavigation from "@/components/navigation/TopNavigation";
 
 function AppRoutes() {
@@ -40,6 +41,7 @@ function AppRoutes() {
           <ProtectedRoute path="/staking" component={StakingPage} />
           <ProtectedRoute path="/wallet" component={WalletPage} />
           <ProtectedRoute path="/settings" component={SettingsPage} />
+          <ProtectedRoute path="/about" component={AboutPage} />
           <Route component={NotFound} />
         </Switch>
       </div>

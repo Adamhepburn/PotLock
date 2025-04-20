@@ -22,7 +22,8 @@ import {
   LogOut,
   User,
   CreditCard,
-  Bell
+  Bell,
+  HelpCircle
 } from "lucide-react";
 
 export default function TopNavigation() {
@@ -120,6 +121,10 @@ export default function TopNavigation() {
                 <DropdownMenuItem onClick={() => setLocation('/friends')}>
                   <Users className="mr-2 h-4 w-4" />
                   <span>Friends</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLocation('/about')}>
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  <span>About PotLock</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setLocation('/settings')}>
                   <Settings className="mr-2 h-4 w-4" />

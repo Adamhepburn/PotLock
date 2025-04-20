@@ -162,7 +162,7 @@ export default function WalletPage() {
                   </div>
                   <div className="flex items-center text-sm">
                     <TrendingUp className="h-4 w-4 text-green-500 mr-2" />
-                    <span>Automatic staking for idle funds</span>
+                    <span>Automatic interest on your balance</span>
                   </div>
                   <div className="flex items-center text-sm">
                     <DollarSign className="h-4 w-4 text-green-500 mr-2" />

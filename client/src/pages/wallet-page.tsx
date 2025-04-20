@@ -82,20 +82,28 @@ export default function WalletPage() {
             )}
           </div>
           <div className="flex gap-2 mt-6">
-            <Button className="flex-1 primary-action-button" onClick={() => {
-              toast({
-                title: "Coming soon",
-                description: "This feature will be available soon"
-              });
-            }}>
+            <Button 
+              className="flex-1 shadow-lg"
+              style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }} 
+              onClick={() => {
+                toast({
+                  title: "Coming soon",
+                  description: "This feature will be available soon"
+                });
+              }}
+            >
               Add Funds
             </Button>
-            <Button variant="outline" className="flex-1 neumorphic-button" onClick={() => {
-              toast({
-                title: "Coming soon",
-                description: "This feature will be available soon"
-              });
-            }}>
+            <Button 
+              variant="outline" 
+              className="flex-1 neumorphic-button" 
+              onClick={() => {
+                toast({
+                  title: "Coming soon",
+                  description: "This feature will be available soon"
+                });
+              }}
+            >
               Cash Out
             </Button>
           </div>
@@ -132,7 +140,8 @@ export default function WalletPage() {
           
           {!isConnected ? (
             <Button 
-              className="w-full primary-action-button"
+              className="w-full shadow-lg"
+              style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }}
               onClick={connectWallet}
               disabled={isConnecting}
             >

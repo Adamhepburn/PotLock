@@ -1,196 +1,284 @@
 import { useState } from "react";
-import { useParams, useLocation } from "wouter";
-import { useToast } from "@/hooks/use-toast";
-import { useWeb3 } from "@/hooks/use-web3";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { StakingModal } from "@/components/StakingModal";
-import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, CreditCard, Building, Wallet, DollarSign } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function CashOutPage() {
-  const { gameId } = useParams();
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { isConnected } = useWeb3();
-  const [chipCount, setChipCount] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isStakingModalOpen, setIsStakingModalOpen] = useState(false);
-  const [enableStaking, setEnableStaking] = useState(false);
+  const [amount, setAmount] = useState<string>("");
+  const [withdrawMethod, setWithdrawMethod] = useState<"bank" | "card" | "wallet">("bank");
+  const [isProcessing, setIsProcessing] = useState(false);
   
-  // Contracts (would be fetched from config or environment)
-  const escrowContractAddress = "0x1234567890123456789012345678901234567890"; // Sample address
-  
-  // Sample game data (would normally be fetched from API)
-  const game = {
-    id: Number(gameId),
-    name: "Friday Night Poker",
-    code: "POKER123",
-    buyInAmount: 100,
-  };
-  
-  // Handle cash out submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!chipCount) {
+  const handleCashOut = async () => {
+    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
       toast({
-        title: "Missing information",
-        description: "Please enter your chip count",
+        title: "Invalid Amount",
+        description: "Please enter a valid amount greater than $0.",
         variant: "destructive"
       });
       return;
     }
     
-    setIsSubmitting(true);
-    
-    // Simulate API call for cash out request
-    setTimeout(() => {
-      toast({
-        title: "Cash out request submitted",
-        description: "Your request has been sent for approval by other players.",
-      });
-      setIsSubmitting(false);
+    try {
+      setIsProcessing(true);
       
-      // If staking is enabled, open the staking modal after submission
-      if (enableStaking) {
-        setIsStakingModalOpen(true);
-      } else {
-        navigate(`/games/${gameId}`);
+      // Call our withdraw API endpoint
+      const response = await apiRequest("POST", "/api/withdraw", {
+        amount: parseFloat(amount),
+        destinationAddress: "user-destination-address" // In a real app, we would get this from user input or profile
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to process withdrawal");
       }
-    }, 1000);
-  };
-  
-  // Toggle staking option
-  const handleStakingToggle = (checked: boolean) => {
-    if (checked && !isConnected) {
+      
+      // Process successful
       toast({
-        title: "Wallet not connected",
-        description: "Please connect your wallet in the profile page before enabling the earnings feature.",
+        title: "Withdrawal Successful",
+        description: `$${parseFloat(amount).toFixed(2)} has been withdrawn from your account.`,
+      });
+      
+      // Navigate to wallet page
+      setTimeout(() => {
+        navigate("/wallet");
+      }, 2000);
+      
+    } catch (error) {
+      console.error("Error processing withdrawal:", error);
+      toast({
+        title: "Withdrawal Failed",
+        description: "There was a problem processing your withdrawal. Please try again.",
         variant: "destructive"
       });
-      return;
+    } finally {
+      setIsProcessing(false);
     }
-    
-    setEnableStaking(checked);
   };
 
   return (
-    <div className="min-h-screen pb-20 flex flex-col">
-      <div className="bg-primary text-white p-6">
+    <div className="min-h-screen bg-app-background pb-20">
+      <div className="bg-app-background border-b border-gray-200 p-6">
         <div className="flex items-center">
-          <button 
-            className="mr-3" 
-            onClick={() => navigate(`/games/${gameId}`)}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="neumorphic-button mr-2"
+            onClick={() => navigate("/wallet")}
           >
-            ← Back
-          </button>
-          <h1 className="text-xl font-bold">Cash Out</h1>
-        </div>
-        <div className="text-sm mt-1 opacity-90">
-          {game.name}
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back to Account
+          </Button>
+          <h1 className="text-xl font-bold">Withdraw Funds</h1>
         </div>
       </div>
-      
-      <div className="p-6">
-        <Card className="mb-6">
-          <CardContent className="p-5">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Submit Cash Out Request</h2>
+
+      <div className="container max-w-xl mx-auto px-4 py-8">
+        <div className="neumorphic-card p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">Cash Out</h2>
+          <p className="text-gray-600 mb-6">
+            Choose your preferred method to withdraw funds from your PotLock account.
+          </p>
+
+          <Tabs defaultValue="bank" className="w-full" onValueChange={(value) => setWithdrawMethod(value as any)}>
+            <TabsList className="neumorphic-card p-1 mb-6 w-full grid grid-cols-3">
+              <TabsTrigger value="bank" className="neumorphic-button data-[state=active]:shadow-inner">
+                <Building className="h-4 w-4 mr-2" />
+                Bank Account
+              </TabsTrigger>
+              <TabsTrigger value="card" className="neumorphic-button data-[state=active]:shadow-inner">
+                <CreditCard className="h-4 w-4 mr-2" />
+                Credit Card
+              </TabsTrigger>
+              <TabsTrigger value="wallet" className="neumorphic-button data-[state=active]:shadow-inner">
+                <Wallet className="h-4 w-4 mr-2" />
+                Coinbase
+              </TabsTrigger>
+            </TabsList>
             
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="chipCount">Your Final Chip Count</Label>
-                <div className="relative">
-                  <Input 
-                    id="chipCount"
-                    value={chipCount}
-                    onChange={(e) => setChipCount(e.target.value)}
-                    className="pl-8"
-                    type="number"
-                    step="0.01"
-                    placeholder="100.00"
-                  />
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <span className="text-gray-500">$</span>
+            {/* Common content for all tabs */}
+            <TabsContent value="bank" className="focus:outline-none">
+              <div className="neumorphic-inset p-6 rounded-xl mb-6">
+                <div className="flex items-center mb-4">
+                  <Building className="h-5 w-5 mr-2 text-blue-500" />
+                  <h3 className="font-semibold">Withdraw to Bank Account</h3>
+                </div>
+                <p className="text-gray-600 text-sm mb-6">
+                  Withdraw funds to your connected bank account. Funds typically arrive within 1-3 business days.
+                </p>
+                
+                {/* Amount Input */}
+                <div className="space-y-4 mb-6">
+                  <div className="neumorphic-inset p-3 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <label className="text-sm text-gray-600">Amount</label>
+                      <div className="flex items-center">
+                        <span className="text-gray-600 mr-2">$</span>
+                        <input 
+                          type="text" 
+                          className="w-24 p-2 rounded-md outline-none bg-transparent text-right" 
+                          placeholder="0.00"
+                          value={amount}
+                          onChange={(e) => setAmount(e.target.value)}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <p className="text-sm text-gray-500">
-                  Enter the dollar amount of chips you currently have.
-                </p>
+                
+                <Button 
+                  className="w-full shadow-lg"
+                  style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }}
+                  disabled={!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0 || isProcessing}
+                  onClick={handleCashOut}
+                >
+                  {isProcessing ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processing...
+                    </span>
+                  ) : (
+                    <>
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Withdraw ${amount ? parseFloat(amount).toFixed(2) : '0.00'}
+                    </>
+                  )}
+                </Button>
               </div>
-              
-              {/* Staking option */}
-              <div className="border border-gray-200 rounded-md p-4 mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <Label htmlFor="staking-toggle" className="font-medium">
-                    Keep earning on your funds
-                  </Label>
-                  <Switch 
-                    id="staking-toggle"
-                    checked={enableStaking}
-                    onCheckedChange={handleStakingToggle}
-                  />
+            </TabsContent>
+            
+            <TabsContent value="card" className="focus:outline-none">
+              <div className="neumorphic-inset p-6 rounded-xl mb-6">
+                <div className="flex items-center mb-4">
+                  <CreditCard className="h-5 w-5 mr-2 text-blue-500" />
+                  <h3 className="font-semibold">Withdraw to Credit Card</h3>
                 </div>
-                <p className="text-sm text-gray-600">
-                  Earn approximately 5% APY on your funds until your next game. Your money stays accessible anytime.
+                <p className="text-gray-600 text-sm mb-6">
+                  Withdraw funds directly to your connected credit card. Funds typically arrive within 24 hours.
                 </p>
-                {enableStaking && (
-                  <div className="mt-2 text-sm font-medium text-emerald-600">
-                    After cash-out approval, you'll be prompted to start earning.
+                
+                {/* Amount Input */}
+                <div className="space-y-4 mb-6">
+                  <div className="neumorphic-inset p-3 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <label className="text-sm text-gray-600">Amount</label>
+                      <div className="flex items-center">
+                        <span className="text-gray-600 mr-2">$</span>
+                        <input 
+                          type="text" 
+                          className="w-24 p-2 rounded-md outline-none bg-transparent text-right" 
+                          placeholder="0.00"
+                          value={amount}
+                          onChange={(e) => setAmount(e.target.value)}
+                        />
+                      </div>
+                    </div>
                   </div>
-                )}
+                </div>
+                
+                <Button 
+                  className="w-full shadow-lg"
+                  style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }}
+                  disabled={!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0 || isProcessing}
+                  onClick={handleCashOut}
+                >
+                  {isProcessing ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processing...
+                    </span>
+                  ) : (
+                    <>
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Withdraw ${amount ? parseFloat(amount).toFixed(2) : '0.00'}
+                    </>
+                  )}
+                </Button>
               </div>
-              
-              <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-4">
-                <h3 className="text-amber-800 font-medium text-sm mb-2">Important</h3>
-                <p className="text-sm text-amber-700">
-                  Your cash out request will need to be approved by other players in the game. Enter the exact amount to avoid disputes.
+            </TabsContent>
+            
+            <TabsContent value="wallet" className="focus:outline-none">
+              <div className="neumorphic-inset p-6 rounded-xl mb-6">
+                <div className="flex items-center mb-4">
+                  <Wallet className="h-5 w-5 mr-2 text-blue-500" />
+                  <h3 className="font-semibold">Withdraw to Coinbase</h3>
+                </div>
+                <p className="text-gray-600 text-sm mb-6">
+                  Withdraw funds directly to your Coinbase account. Funds typically arrive instantly.
                 </p>
+                
+                {/* Amount Input */}
+                <div className="space-y-4 mb-6">
+                  <div className="neumorphic-inset p-3 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <label className="text-sm text-gray-600">Amount</label>
+                      <div className="flex items-center">
+                        <span className="text-gray-600 mr-2">$</span>
+                        <input 
+                          type="text" 
+                          className="w-24 p-2 rounded-md outline-none bg-transparent text-right" 
+                          placeholder="0.00"
+                          value={amount}
+                          onChange={(e) => setAmount(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <Button 
+                  className="w-full shadow-lg"
+                  style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }}
+                  disabled={!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0 || isProcessing}
+                  onClick={handleCashOut}
+                >
+                  {isProcessing ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processing...
+                    </span>
+                  ) : (
+                    <>
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Withdraw ${amount ? parseFloat(amount).toFixed(2) : '0.00'}
+                    </>
+                  )}
+                </Button>
               </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Submitting..." : "Submit Cash Out Request"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
         
-        {/* Info Box */}
-        <Card>
-          <CardContent className="p-5">
-            <h3 className="font-medium text-gray-800 mb-2">How Cash Out Works</h3>
-            <ol className="text-sm text-gray-600 space-y-2 list-decimal pl-4">
-              <li>You submit your final chip count for review</li>
-              <li>Other players in the game verify your submission</li>
-              <li>Once approved, the escrow contract releases your funds</li>
-              <li>Funds are transferred to your connected wallet</li>
-              {enableStaking && (
-                <li className="text-emerald-600 font-medium">
-                  Your funds start earning ~5% APY until you need them again
-                </li>
-              )}
-            </ol>
-          </CardContent>
-        </Card>
-      </div>
-      
-      {/* Staking Modal */}
-      <StakingModal
-        open={isStakingModalOpen}
-        onOpenChange={setIsStakingModalOpen}
-        amount={chipCount}
-        contractAddress={escrowContractAddress}
-      />
-      
-      {/* Navigation bar */}
-      <div className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-gray-200 flex items-center justify-around px-6">
-        <Button variant="ghost" onClick={() => navigate("/games")}>Games</Button>
-        <Button variant="ghost" onClick={() => navigate("/profile")}>Profile</Button>
+        <div className="neumorphic-card p-6">
+          <h3 className="font-semibold mb-4">Important Information</h3>
+          <ul className="space-y-3 text-sm text-gray-600">
+            <li className="flex items-start">
+              <span className="inline-block w-4 h-4 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs mt-0.5 mr-2">i</span>
+              Withdrawals typically take 1-3 business days to appear in your bank account.
+            </li>
+            <li className="flex items-start">
+              <span className="inline-block w-4 h-4 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs mt-0.5 mr-2">i</span>
+              There are no fees for standard withdrawals.
+            </li>
+            <li className="flex items-start">
+              <span className="inline-block w-4 h-4 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs mt-0.5 mr-2">i</span>
+              The minimum withdrawal amount is $10.
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
   );

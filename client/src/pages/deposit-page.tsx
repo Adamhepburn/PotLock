@@ -11,9 +11,110 @@ import PlaidLinkButton from "@/components/deposit/PlaidLinkButton";
 
 export default function DepositPage() {
   const [, navigate] = useLocation();
+  const { toast } = useToast();
   const { isConnected, connectWallet, disconnectWallet, address, isConnecting } = useWeb3();
   const [depositMethod, setDepositMethod] = useState<"bank" | "card" | "wallet">("bank");
   const [amount, setAmount] = useState<string>("");
+  const [isProcessingCard, setIsProcessingCard] = useState(false);
+  const [isProcessingCoinbase, setIsProcessingCoinbase] = useState(false);
+  
+  const handleCreditCardPayment = async () => {
+    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid amount greater than $0.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setIsProcessingCard(true);
+      
+      // In a real implementation, we would:
+      // 1. Get payment methods from Coinbase
+      // 2. Let the user select or add a card
+      // 3. Process the payment with the selected method
+      
+      // For now, we'll simulate the process with a mock payment method
+      const mockPaymentMethod = "pm_card_" + Math.random().toString(36).substring(2, 15);
+      
+      // Call our coinbase/buy API endpoint
+      const response = await apiRequest("POST", "/api/coinbase/buy", {
+        amount: parseFloat(amount),
+        paymentMethod: mockPaymentMethod
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to process payment");
+      }
+      
+      // Process successful
+      toast({
+        title: "Deposit Successful",
+        description: `$${parseFloat(amount).toFixed(2)} has been added to your account.`,
+      });
+      
+    } catch (error) {
+      console.error("Error processing credit card payment:", error);
+      toast({
+        title: "Payment Failed",
+        description: "There was a problem processing your payment. Please try again or use a different method.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessingCard(false);
+    }
+  };
+  
+  const handleCoinbaseDeposit = async () => {
+    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid amount greater than $0.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!isConnected || !address) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your Coinbase Wallet first.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setIsProcessingCoinbase(true);
+      
+      // Call our deposit API endpoint to deposit directly from wallet
+      const response = await apiRequest("POST", "/api/deposit", {
+        amount: parseFloat(amount)
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to process deposit");
+      }
+      
+      // Process successful
+      toast({
+        title: "Deposit Successful",
+        description: `$${parseFloat(amount).toFixed(2)} has been added to your account.`,
+      });
+      
+    } catch (error) {
+      console.error("Error processing Coinbase deposit:", error);
+      toast({
+        title: "Deposit Failed",
+        description: "There was a problem processing your deposit. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessingCoinbase(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-app-background pb-20">
@@ -157,9 +258,22 @@ export default function DepositPage() {
                   className="w-full shadow-lg"
                   style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }}
                   disabled={!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0}
+                  onClick={handleCreditCardPayment}
                 >
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Add ${amount ? parseFloat(amount).toFixed(2) : '0.00'}
+                  {isProcessingCard ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processing...
+                    </span>
+                  ) : (
+                    <>
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Add ${amount ? parseFloat(amount).toFixed(2) : '0.00'}
+                    </>
+                  )}
                 </Button>
                 
                 <div className="flex items-center justify-center mt-4">
@@ -247,10 +361,23 @@ export default function DepositPage() {
                     <Button 
                       className="w-full shadow-lg mb-4"
                       style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }}
-                      disabled={!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0}
+                      disabled={!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0 || isProcessingCoinbase}
+                      onClick={handleCoinbaseDeposit}
                     >
-                      <DollarSign className="h-4 w-4 mr-2" />
-                      Deposit ${amount ? parseFloat(amount).toFixed(2) : '0.00'}
+                      {isProcessingCoinbase ? (
+                        <span className="flex items-center">
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Processing...
+                        </span>
+                      ) : (
+                        <>
+                          <DollarSign className="h-4 w-4 mr-2" />
+                          Deposit ${amount ? parseFloat(amount).toFixed(2) : '0.00'}
+                        </>
+                      )}
                     </Button>
                     
                     <Button

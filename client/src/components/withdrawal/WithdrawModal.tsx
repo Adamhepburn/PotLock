@@ -1,25 +1,24 @@
 import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  Building,
-  Wallet,
-  ArrowRight,
-  Check,
-  Loader2,
+import { 
+  Building, 
+  Wallet, 
+  ArrowRight, 
+  Check, 
+  Loader2, 
   DollarSign,
-  Info
+  ShieldCheck
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useWeb3 } from "@/hooks/use-web3";
@@ -27,33 +26,29 @@ import { useWeb3 } from "@/hooks/use-web3";
 interface WithdrawModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  availableBalance?: number;
+  maxAmount?: string;
 }
 
-export function WithdrawModal({
-  open,
+export default function WithdrawModal({ 
+  open, 
   onOpenChange,
-  availableBalance = 0,
+  maxAmount = "500"
 }: WithdrawModalProps) {
   const { toast } = useToast();
-  const { isConnected, address } = useWeb3();
-  const [activeTab, setActiveTab] = useState<string>("wallet");
+  const { isConnected, address, connectWallet } = useWeb3();
+  const [activeTab, setActiveTab] = useState<string>("bank");
   const [amount, setAmount] = useState<string>("");
-  const [accountType, setAccountType] = useState<string>("checking");
   const [accountNumber, setAccountNumber] = useState<string>("");
   const [routingNumber, setRoutingNumber] = useState<string>("");
   const [accountName, setAccountName] = useState<string>("");
-  const [withdrawalAddress, setWithdrawalAddress] = useState<string>(address || "");
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   
   const resetForm = () => {
     setAmount("");
-    setAccountType("checking");
     setAccountNumber("");
     setRoutingNumber("");
     setAccountName("");
-    setWithdrawalAddress(address || "");
     setIsProcessing(false);
     setIsSuccess(false);
   };
@@ -77,29 +72,13 @@ export function WithdrawModal({
       return;
     }
     
-    // Don't allow amount greater than available balance
-    if (parseFloat(value) > availableBalance) {
-      setAmount(availableBalance.toString());
+    // Don't allow amount greater than maxAmount
+    if (parseFloat(value) > parseFloat(maxAmount)) {
+      setAmount(maxAmount);
       return;
     }
     
     setAmount(value);
-  };
-  
-  const formatRoutingNumber = (value: string) => {
-    return value.replace(/\D/g, "").substring(0, 9);
-  };
-  
-  const formatAccountNumber = (value: string) => {
-    return value.replace(/\D/g, "").substring(0, 17);
-  };
-  
-  const handleRoutingNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setRoutingNumber(formatRoutingNumber(e.target.value));
-  };
-  
-  const handleAccountNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setAccountNumber(formatAccountNumber(e.target.value));
   };
   
   const validateBankForm = () => {
@@ -107,6 +86,15 @@ export function WithdrawModal({
       toast({
         title: "Invalid amount",
         description: "Please enter a valid amount to withdraw",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    if (!accountNumber || accountNumber.length < 8) {
+      toast({
+        title: "Invalid account number",
+        description: "Please enter a valid account number",
         variant: "destructive",
       });
       return false;
@@ -121,19 +109,10 @@ export function WithdrawModal({
       return false;
     }
     
-    if (!accountNumber || accountNumber.length < 4) {
-      toast({
-        title: "Invalid account number",
-        description: "Please enter a valid account number",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
     if (!accountName) {
       toast({
         title: "Missing account name",
-        description: "Please enter the name on your bank account",
+        description: "Please enter the account holder's name",
         variant: "destructive",
       });
       return false;
@@ -141,7 +120,7 @@ export function WithdrawModal({
     
     return true;
   };
-  
+
   const validateWalletForm = () => {
     if (!amount || parseFloat(amount) <= 0) {
       toast({
@@ -152,10 +131,10 @@ export function WithdrawModal({
       return false;
     }
     
-    if (!withdrawalAddress || !/^0x[a-fA-F0-9]{40}$/.test(withdrawalAddress)) {
+    if (!isConnected) {
       toast({
-        title: "Invalid wallet address",
-        description: "Please enter a valid Ethereum wallet address",
+        title: "Wallet not connected",
+        description: "Please connect your wallet first",
         variant: "destructive",
       });
       return false;
@@ -164,12 +143,8 @@ export function WithdrawModal({
     return true;
   };
   
-  const handleSubmit = async () => {
-    if (activeTab === "bank" && !validateBankForm()) {
-      return;
-    }
-    
-    if (activeTab === "wallet" && !validateWalletForm()) {
+  const handleBankWithdraw = async () => {
+    if (!validateBankForm()) {
       return;
     }
     
@@ -184,7 +159,43 @@ export function WithdrawModal({
       
       toast({
         title: "Withdrawal initiated",
-        description: `$${amount} withdrawal has been initiated to your ${activeTab === "bank" ? "bank account" : "wallet"}`,
+        description: `$${amount} will be sent to your bank account in 1-3 business days`,
+      });
+      
+      // Close modal after showing success state
+      setTimeout(() => {
+        onOpenChange(false);
+        resetForm();
+      }, 2000);
+    } catch (error: any) {
+      console.error("Error processing withdrawal:", error);
+      toast({
+        title: "Withdrawal failed",
+        description: error.message || "An error occurred while processing your withdrawal",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  
+  const handleCryptoWithdraw = async () => {
+    if (!validateWalletForm()) {
+      return;
+    }
+    
+    setIsProcessing(true);
+    
+    try {
+      // In real implementation, would make API call to backend to process withdrawal
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Success
+      setIsSuccess(true);
+      
+      toast({
+        title: "Withdrawal complete",
+        description: `$${amount} worth of USDC has been sent to your wallet`,
       });
       
       // Close modal after showing success state
@@ -213,167 +224,179 @@ export function WithdrawModal({
         <DialogHeader>
           <DialogTitle>Withdraw Funds</DialogTitle>
           <DialogDescription>
-            Withdraw funds to your bank account or crypto wallet.
+            Withdraw money to your bank account or crypto wallet.
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs defaultValue="wallet" className="mt-2" onValueChange={handleTabChange}>
+        <Tabs defaultValue="bank" className="mt-2" onValueChange={handleTabChange}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="wallet" className="flex items-center gap-2">
-              <Wallet className="h-4 w-4" />
-              <span>To Wallet</span>
-            </TabsTrigger>
             <TabsTrigger value="bank" className="flex items-center gap-2">
               <Building className="h-4 w-4" />
-              <span>To Bank</span>
+              <span>Bank</span>
+            </TabsTrigger>
+            <TabsTrigger value="crypto" className="flex items-center gap-2">
+              <Wallet className="h-4 w-4" />
+              <span>Crypto</span>
             </TabsTrigger>
           </TabsList>
           
-          {/* Success state (shown for both tabs) */}
-          {isSuccess && (
-            <div className="py-6 flex flex-col items-center justify-center text-center mt-4">
-              <div className="w-16 h-16 flex items-center justify-center rounded-full bg-green-100 mb-4">
-                <Check className="h-8 w-8 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Withdrawal Initiated!</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                ${amount} will be sent to your {activeTab === "bank" ? "bank account" : "wallet"}
-              </p>
-              <Button variant="outline" onClick={() => {
-                onOpenChange(false);
-                resetForm();
-              }}>
-                Done
-              </Button>
-            </div>
-          )}
-          
-          {/* Wallet Tab */}
-          {!isSuccess && (
-            <TabsContent value="wallet" className="mt-4 space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="withdrawal-amount">Amount (USD)</Label>
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    id="withdrawal-amount"
-                    placeholder="0.00"
-                    className="pl-10"
-                    value={amount}
-                    onChange={handleAmountChange}
-                    disabled={isProcessing}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Available balance: ${availableBalance.toFixed(2)}
-                </p>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="wallet-address">Destination Wallet Address</Label>
-                <Input
-                  id="wallet-address"
-                  placeholder="0x..."
-                  value={withdrawalAddress}
-                  onChange={(e) => setWithdrawalAddress(e.target.value)}
-                  disabled={isProcessing}
-                />
-                {isConnected && (
-                  <p className="text-xs text-muted-foreground">
-                    Using your connected wallet address
-                  </p>
-                )}
-              </div>
-              
-              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                <div className="flex items-start">
-                  <Info className="h-4 w-4 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
-                  <p className="text-xs text-yellow-800">
-                    Withdrawals to external wallets typically complete within minutes but may take up to 24 hours. Network fees may apply.
-                  </p>
-                </div>
-              </div>
-            </TabsContent>
-          )}
-          
           {/* Bank Tab */}
-          {!isSuccess && (
-            <TabsContent value="bank" className="mt-4 space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="bank-withdrawal-amount">Amount (USD)</Label>
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+          <TabsContent value="bank" className="mt-4">
+            {isSuccess ? (
+              <div className="py-6 flex flex-col items-center justify-center text-center">
+                <div className="w-16 h-16 flex items-center justify-center rounded-full bg-green-100 mb-4">
+                  <Check className="h-8 w-8 text-green-600" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Withdrawal Initiated!</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  ${amount} will be sent to your bank account in 1-3 business days
+                </p>
+                <Button variant="outline" onClick={() => {
+                  onOpenChange(false);
+                  resetForm();
+                }}>
+                  Done
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="withdraw-amount">Amount (USD)</Label>
+                    <span className="text-xs text-muted-foreground">
+                      Available: ${maxAmount}
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      id="withdraw-amount"
+                      placeholder="0.00"
+                      className="pl-10"
+                      value={amount}
+                      onChange={handleAmountChange}
+                      disabled={isProcessing}
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="account-number">Account Number</Label>
                   <Input
-                    id="bank-withdrawal-amount"
-                    placeholder="0.00"
-                    className="pl-10"
-                    value={amount}
-                    onChange={handleAmountChange}
+                    id="account-number" 
+                    placeholder="12345678"
+                    value={accountNumber}
+                    onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ""))}
                     disabled={isProcessing}
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Available balance: ${availableBalance.toFixed(2)}
-                </p>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Account Type</Label>
-                <RadioGroup value={accountType} onValueChange={setAccountType} className="flex space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="checking" id="checking" />
-                    <Label htmlFor="checking" className="cursor-pointer">Checking</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="savings" id="savings" />
-                    <Label htmlFor="savings" className="cursor-pointer">Savings</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="routing-number">Routing Number</Label>
-                <Input
-                  id="routing-number"
-                  placeholder="123456789"
-                  value={routingNumber}
-                  onChange={handleRoutingNumberChange}
-                  disabled={isProcessing}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="account-number">Account Number</Label>
-                <Input
-                  id="account-number"
-                  placeholder="123456789012"
-                  value={accountNumber}
-                  onChange={handleAccountNumberChange}
-                  disabled={isProcessing}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="account-name">Name on Account</Label>
-                <Input
-                  id="account-name"
-                  placeholder="John Doe"
-                  value={accountName}
-                  onChange={(e) => setAccountName(e.target.value)}
-                  disabled={isProcessing}
-                />
-              </div>
-              
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                <div className="flex items-start">
-                  <Info className="h-4 w-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
-                  <p className="text-xs text-blue-800">
-                    Bank withdrawals typically take 1-3 business days to complete. A fee of $0.25 applies to ACH transfers.
-                  </p>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="routing-number">Routing Number</Label>
+                  <Input
+                    id="routing-number" 
+                    placeholder="123456789"
+                    value={routingNumber}
+                    onChange={(e) => setRoutingNumber(e.target.value.replace(/\D/g, "").substring(0, 9))}
+                    disabled={isProcessing}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="account-name">Account Holder Name</Label>
+                  <Input 
+                    id="account-name" 
+                    placeholder="J. Doe"
+                    value={accountName}
+                    onChange={(e) => setAccountName(e.target.value)}
+                    disabled={isProcessing}
+                  />
+                </div>
+                
+                <div className="text-xs text-muted-foreground flex items-center mt-4">
+                  <ShieldCheck className="h-4 w-4 mr-1 text-green-600" />
+                  Your banking information is secure and encrypted
                 </div>
               </div>
-            </TabsContent>
-          )}
+            )}
+          </TabsContent>
+          
+          {/* Crypto Tab */}
+          <TabsContent value="crypto" className="mt-4 space-y-4">
+            {isSuccess ? (
+              <div className="py-6 flex flex-col items-center justify-center text-center">
+                <div className="w-16 h-16 flex items-center justify-center rounded-full bg-green-100 mb-4">
+                  <Check className="h-8 w-8 text-green-600" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Withdrawal Complete!</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  ${amount} worth of USDC has been sent to your wallet
+                </p>
+                <Button variant="outline" onClick={() => {
+                  onOpenChange(false);
+                  resetForm();
+                }}>
+                  Done
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="crypto-amount">Amount (USD)</Label>
+                    <span className="text-xs text-muted-foreground">
+                      Available: ${maxAmount}
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      id="crypto-amount"
+                      placeholder="0.00"
+                      className="pl-10"
+                      value={amount}
+                      onChange={handleAmountChange}
+                      disabled={isProcessing}
+                    />
+                  </div>
+                </div>
+                
+                <div className="p-4 border rounded-md bg-gray-50">
+                  <h4 className="text-sm font-medium mb-2">Connected Wallet</h4>
+                  {isConnected ? (
+                    <div className="text-sm space-y-1">
+                      <div className="font-mono text-xs text-gray-500 truncate">
+                        {address && address.slice(0, 8) + '...' + address.slice(-6)}
+                      </div>
+                      <p className="text-xs text-green-700 flex items-center">
+                        <Check className="h-3 w-3 mr-1" /> Ready for withdrawal
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground mb-4">
+                      Connect your wallet to receive funds as USDC stablecoin.
+                    </div>
+                  )}
+                  
+                  {!isConnected && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 w-full"
+                      onClick={connectWallet}
+                    >
+                      Connect Wallet
+                    </Button>
+                  )}
+                </div>
+                
+                <div className="text-xs text-muted-foreground flex items-center mt-2">
+                  <ShieldCheck className="h-4 w-4 mr-1 text-green-600" />
+                  Withdrawals are sent as USDC (USD Coin) stablecoin
+                </div>
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
         
         {!isSuccess && (
@@ -381,8 +404,8 @@ export function WithdrawModal({
             <Button
               type="submit"
               className="w-full"
-              onClick={handleSubmit}
-              disabled={isProcessing || parseFloat(amount || "0") <= 0}
+              onClick={activeTab === "bank" ? handleBankWithdraw : handleCryptoWithdraw}
+              disabled={isProcessing || (activeTab === "crypto" && !isConnected)}
             >
               {isProcessing ? (
                 <>
@@ -391,7 +414,7 @@ export function WithdrawModal({
                 </>
               ) : (
                 <>
-                  Withdraw ${parseFloat(amount || "0").toFixed(2)} <ArrowRight className="ml-2 h-4 w-4" />
+                  Withdraw ${amount || "0"} <ArrowRight className="ml-2 h-4 w-4" />
                 </>
               )}
             </Button>

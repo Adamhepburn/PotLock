@@ -1,0 +1,137 @@
+Update the PotLuck app in Replit to use a master smart contract that holds all user funds (USDC) and tracks each user’s balance within the app, eliminating the need for a mandatory Coinbase Wallet. Users can optionally connect a Coinbase Wallet for easy USDC transfers (e.g., deposit or withdraw to their wallet). The smart contract manages funds for poker bets, Aave staking (~3% APY for idle funds, paused during bets), and long-term bets with a 7-day staking bonus post-resolution. Update the frontend to show user balances and wallet connection options, and ensure Coinbase’s on-ramp/off-ramp (via Buy/Sell APIs) deposits/withdraws USDC to/from the smart contract. Work in `frontend` (React Native), `backend` (Node.js), and `contracts` (Solidity/Hardhat) folders, assuming Coinbase Wallet SDK and `PotLuck.sol` (previously PokerEscrow.sol) are set up on Base Sepolia. Use simple code, specific file paths, and Replit Agent best practices to minimize errors.
+
+**Project Context**:
+- **App Purpose**: PotLuck enables secure poker payouts via blockchain escrow, allowing users to deposit USDC (via Coinbase on-ramp), play poker, stake idle funds in Aave, and withdraw USDC (via Coinbase off-ramp or wallet). Targets non-crypto users (males 18-40) who value simplicity.
+- **Master Smart Contract Role**:
+  - Holds all USDC in one contract (`PotLuck.sol`) on Base.
+  - Tracks user balances internally (e.g., `mapping(address => uint256) balances`) without requiring Coinbase Wallet.
+  - Supports: Deposits (from Coinbase or wallet), poker bets (locked funds), Aave staking (idle funds), withdrawals (to Coinbase off-ramp or user’s Coinbase Wallet if connected).
+  - Optional Coinbase Wallet: Users can connect their wallet to deposit/withdraw USDC directly, but non-wallet users use the app’s balance system.
+- **Existing Setup**:
+  - `frontend`: React Native with Coinbase Wallet SDK (`frontend/src/LoginScreen.js`), Plaid for bank linking.
+  - `backend`: Node.js with Coinbase Buy/Sell APIs (`backend/coinbase.js`), Plaid APIs (`backend/plaid.js`).
+  - `contracts`: `PotLuck.sol` (previously PokerEscrow.sol) with basic escrow/staking functions.
+  - Secrets: `COINBASE_API_KEY`, `COINBASE_API_SECRET`, `PLAID_CLIENT_ID`, `PLAID_SECRET`, `ALCHEMY_API_KEY`, `ADMIN_WALLET_PRIVATE_KEY`.
+- **UX Goals** (non-crypto friendly):
+  - Dashboard: “Balance: 100 USDC (50 USDC earning 3% APY, 50 USDC in bets).”
+  - Wallet Option: “Connect Coinbase Wallet” button (optional, for transfers).
+  - Deposit: “Add Funds” → Bank → “$100 deposited as 100 USDC.”
+  - Withdraw: “Withdraw 50 USDC” → Bank or Coinbase Wallet.
+  - Staking: Modal: “Earn 3% on 50 USDC until next game?”
+  - Long-Term Bets: “Join 2-week tournament? 50 USDC locked.” Post-bet: “Won 75 USDC! Stake for 7 days?”
+
+**Steps**:
+1. **Project Setup**:
+   - Verify folders: `frontend`, `backend`, `contracts`.
+   - Ensure dependencies:
+     - Frontend: `@coinbase/wallet-sdk`, `web3`, `react-plaid-link`, `react-native-modal`.
+     - Backend: `plaid`, `coinbase`, `node-fetch`.
+     - Contracts: `@openzeppelin/contracts`, `@aave/core-v3`.
+   - Run: `cd frontend && npm install` and `cd backend && npm install`.
+   - Check Secrets: `COINBASE_API_KEY`, `COINBASE_API_SECRET`, `PLAID_CLIENT_ID`, `PLAID_SECRET`, `ALCHEMY_API_KEY`, `ADMIN_WALLET_PRIVATE_KEY`.
+   - Rename `PokerEscrow.sol` to `PotLuck.sol` in `contracts` if not already done, and update references in `contracts/scripts/deploy.js` and `contracts/test/PotLuck.js`.
+   - Create checkpoint: “Before smart contract update.”
+
+2. **Smart Contract: Master Funds Management**:
+   - Update `contracts/PotLuck.sol`:
+     - Define `usdcToken` (Base Sepolia USDC address) and `aaveLendingPool` (Aave pool address).
+     - Add mappings: `mapping(address => uint256) balances` (total user funds), `mapping(address => uint256) idleBalances` (staked/available), `mapping(address => uint256) bets` (locked in bets).
+     - Functions:
+       - `depositUSDC(uint256 amount)`: Receive USDC (from Coinbase or wallet), update `balances` and `idleBalances`.
+       - `depositAndStake(uint256 amount)`: Stake `idleBalances` in Aave (`IPool.supply`), track interest.
+       - `lockBet(uint256 amount)`: Move USDC from `idleBalances` to `bets`, pause interest.
+       - `resolveBetAndStake(address winner, uint256 amount)`: Resolve bet, update `bets`, optionally stake winnings in Aave for 7 days.
+       - `withdrawUSDC(uint256 amount, address destination)`: Withdraw from Aave (if staked), send USDC to `destination` (Coinbase or user wallet).
+       - `connectWallet(address user)`: Record user’s Coinbase Wallet address for optional transfers (emit event).
+     - Use `@openzeppelin/contracts/token/ERC20/IERC20.sol` for USDC, `@aave/core-v3/contracts/interfaces/IPool.sol` for Aave.
+     - Events: `Deposited(address user, uint256 amount)`, `Staked(address user, uint256 amount)`, `BetLocked(address user, uint256 amount)`, `BetResolved(address winner, uint256 amount)`, `Withdrawn(address user, uint256 amount)`, `WalletConnected(address user)`.
+     - Error checks: `require(amount > 0, "Invalid amount")`, `require(idleBalances[msg.sender] >= amount, "Insufficient idle funds")`.
+   - Update `contracts/scripts/deploy.js` to deploy `PotLuck.sol` to Base Sepolia.
+   - Write Hardhat tests in `contracts/test/PotLuck.js`:
+     - Test deposit, stake, bet, resolve, withdraw, wallet connection.
+     - Simulate $50 deposit, stake, bet, and withdrawal.
+   - Create checkpoint: “Smart contract updated.”
+
+3. **Frontend: Balance Display and Wallet Connection**:
+   - Update `frontend/src/DashboardScreen.js`:
+     - Fetch balances from `PotLuck.sol` via Web3.js (use `balances`, `idleBalances`, `bets`).
+     - Display: “Balance: [X] USDC ([Y] USDC earning 3% APY, [Z] USDC in bets).”
+     - Add button: “Connect Coinbase Wallet” (calls Coinbase Wallet SDK to link wallet).
+     - Show wallet status: “Wallet Connected” or “No Wallet” after connection attempt.
+     - Buttons: “Add Funds,” “Play Poker,” “Earn Interest,” “Withdraw.”
+   - Update `frontend/src/DepositScreen.js`:
+     - After Coinbase on-ramp, call `PotLuck.sol`’s `depositUSDC` to update balance.
+     - Show: “$100 deposited as 100 USDC.”
+   - Update `frontend/src/WithdrawScreen.js`:
+     - Add option: “Withdraw to Bank” (Coinbase off-ramp) or “Withdraw to Coinbase Wallet” (if connected).
+     - Call `PotLuck.sol`’s `withdrawUSDC` with destination (Coinbase or wallet address).
+     - Show: “Withdrawal started! $50 to bank in 1-3 days” or “50 USDC sent to wallet.”
+   - Update `frontend/src/InvestmentModal.js`:
+     - Modal: “Earn 3% on [X] USDC until next game?” → Call `depositAndStake`.
+     - Long-term bet: “Won [X] USDC! Stake for 7 days?” → Call `resolveBetAndStake`.
+   - Add error handling:
+     - Catch Web3.js errors: `alert("Network issue. Try again.")`.
+     - Validate funds: `alert("Insufficient idle funds.")`.
+     - Wallet connection failure: `alert("Wallet connection failed.")`.
+   - Create checkpoint: “Frontend updated.”
+
+4. **Backend: Coinbase On-Ramp/Off-Ramp to Smart Contract**:
+   - Update `backend/coinbase.js`:
+     - Endpoint `/coinbase/buy`: Convert USD to USDC via Buy API (`/v2/buy`), transfer to `PotLuck.sol` using `ADMIN_WALLET_PRIVATE_KEY` for gas.
+     - Endpoint `/coinbase/sell`: Withdraw USDC from `PotLuck.sol` to Coinbase, convert to USD via Sell API (`/v2/sell`), send to bank.
+     - Endpoint `/coinbase/connect-wallet`: Store user’s Coinbase Wallet address (from SDK), call `PotLuck.sol`’s `connectWallet`.
+   - Update `backend/plaid.js` to ensure bank linking supports Coinbase’s ACH flow.
+   - Add error handling:
+     - Try-catch for API failures: Return `{ error: "Insufficient funds" }`.
+     - Log errors to Replit console.
+   - Update `backend/index.js` to include `/coinbase` routes.
+   - Create checkpoint: “Backend updated.”
+
+5. **Testing and Debugging**:
+   - Write Hardhat tests in `contracts/test/PotLuck.js`:
+     - Test `depositUSDC`, `depositAndStake`, `lockBet`, `resolveBetAndStake`, `withdrawUSDC`, `connectWallet`.
+     - Simulate $50 deposit (Coinbase), stake, bet, withdrawal (bank and wallet).
+   - Test frontend in Replit’s mobile preview:
+     - Deposit $50 via bank (mock Plaid).
+     - Verify dashboard: “Balance: 50 USDC (50 USDC earning 3% APY).”
+     - Lock 25 USDC in bet: “Locked: 25 USDC.”
+     - Resolve long-term bet, stake 75 USDC for 7 days.
+     - Withdraw 25 USDC to bank and wallet (if connected).
+     - Connect Coinbase Wallet, verify “Wallet Connected.”
+   - Use Base Sepolia faucet (https://www.alchemy.com/faucets/base-sepolia) for test USDC/ETH.
+   - Add console logs: e.g., “Deposit to PotLuck.sol,” “Wallet connected.”
+   - Enable Replit Assistant’s “Debug with AI” for syntax fixes.
+   - Create checkpoint: “Tests complete.”
+
+6. **Error Prevention**:
+   - Use exact file paths: e.g., `contracts/PotLuck.sol`.
+   - Add one feature at a time: Contract → Frontend → Backend.
+   - Add try-catch in frontend/backend, `require` in Solidity.
+   - Commit to Git: `git commit -m “Updated PotLuck.sol”`.
+   - Fork project (Replit remix) for backup.
+   - If Agent fails, rollback and rephrase: e.g., “Fix PotLuck.sol deposit function.”
+   - Check Replit console for errors, use Assistant for debugging.
+
+7. **Deliverables**:
+   - `contracts/PotLuck.sol`: Master contract with funds management.
+   - `contracts/test/PotLuck.js`: Hardhat tests.
+   - `contracts/scripts/deploy.js`: Deploy script.
+   - `frontend/src/DashboardScreen.js`: Updated balance and wallet UI.
+   - `frontend/src/DepositScreen.js`: Deposit to contract.
+   - `frontend/src/WithdrawScreen.js`: Withdraw to bank/wallet.
+   - `frontend/src/InvestmentModal.js`: Staking and bet bonus.
+   - `backend/coinbase.js`: On-ramp/off-ramp and wallet connection.
+   - `backend/plaid.js`: Bank linking.
+   - `backend/index.js`: Updated routes.
+   - Updated `README.md`:
+     - Install: `cd frontend && npm install`, `cd backend && npm install`.
+     - Run: `cd backend && node index.js`, `cd frontend && npm start`.
+     - Deploy: `cd contracts && npx hardhat run scripts/deploy.js --network base-sepolia`.
+     - Test: “Use Base Sepolia faucet, deposit $50, stake, bet, withdraw.”
+     - Secrets: `COINBASE_API_KEY`, `COINBASE_API_SECRET`, `PLAID_CLIENT_ID`, `PLAID_SECRET`, `ALCHEMY_API_KEY`, `ADMIN_WALLET_PRIVATE_KEY`.
+
+**UX Details**:
+- Dashboard: “Balance: 100 USDC (50 USDC earning 3% APY, 50 USDC in bets).” Button: “Connect Coinbase Wallet.”
+- Deposit: “Add Funds” → Bank → “$100 deposited as 100 USDC.”
+- Withdraw: “Withdraw 50 USDC” → “To Bank” or “To Coinbase Wallet” (if connected).
+- St

@@ -184,10 +184,13 @@ export default function DashboardPage() {
       <div className="px-4 py-2">
         {/* Balance card only - Removed wallet connection */}
         <div className="mb-6">
-          {/* Simplified Balance Card without staking UI */}
+          {/* Balance Card with optional interest display and Coinbase connect */}
           <BalanceCard 
             totalBalance={100} 
-            availableBalance={100}
+            availableBalance={75}
+            inBets={25}
+            earningInterest={50}
+            apy={3}
           />
         </div>
       

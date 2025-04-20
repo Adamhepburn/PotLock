@@ -1,21 +1,29 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { DollarSign, Eye, EyeOff } from "lucide-react";
+import { DollarSign, Eye, EyeOff, Percent, Wallet } from "lucide-react";
 import DepositModal from "@/components/deposit/DepositModal";
 import WithdrawModal from "@/components/withdrawal/WithdrawModal";
+import { useWeb3 } from "@/hooks/use-web3";
 
 interface BalanceCardProps {
   availableBalance: number;
   totalBalance: number;
+  inBets?: number;
+  earningInterest?: number;
+  apy?: number;
 }
 
 export default function BalanceCard({
   availableBalance = 500,
-  totalBalance = 500
+  totalBalance = 500,
+  inBets = 0,
+  earningInterest = 0,
+  apy = 3
 }: BalanceCardProps) {
   const [isHidden, setIsHidden] = useState(false);
   const [depositModalOpen, setDepositModalOpen] = useState(false);
   const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
+  const { isConnected, connectWallet } = useWeb3();
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -45,16 +53,27 @@ export default function BalanceCard({
             </Button>
           </div>
           <div className="text-sm text-gray-500 mt-1">
-            Your available balance
+            {earningInterest > 0 ? (
+              <div className="flex items-center">
+                Your balance <span className="flex items-center ml-1 text-green-600 text-xs">
+                  <Percent className="h-3 w-3 mr-0.5" />{apy}% APY on {formatCurrency(earningInterest)}
+                </span>
+              </div>
+            ) : "Your available balance"}
           </div>
         </div>
         
-        <div className="space-y-5">
+        <div className="space-y-4">
           <div>
-            <div className="mt-1 mb-4">
+            <div className="mt-1 mb-3">
               <span className="text-2xl font-bold text-gray-800">
                 {isHidden ? "••••••" : formatCurrency(totalBalance)}
               </span>
+              {inBets > 0 && (
+                <div className="text-sm text-gray-500 mt-1">
+                  {formatCurrency(inBets)} in active bets
+                </div>
+              )}
             </div>
           </div>
           
@@ -64,7 +83,7 @@ export default function BalanceCard({
               size="sm"
               onClick={() => setDepositModalOpen(true)}
             >
-              Deposit
+              Add Funds
             </Button>
             <Button 
               variant="outline" 
@@ -72,9 +91,20 @@ export default function BalanceCard({
               size="sm"
               onClick={() => setWithdrawModalOpen(true)}
             >
-              Withdraw
+              Cash Out
             </Button>
           </div>
+          
+          {!isConnected && (
+            <Button
+              variant="outline"
+              className="w-full neumorphic-button flex items-center justify-center gap-2 mt-2"
+              onClick={connectWallet}
+            >
+              <Wallet className="h-4 w-4" />
+              Connect Coinbase
+            </Button>
+          )}
         </div>
       </div>
       

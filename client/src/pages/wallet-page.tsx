@@ -10,6 +10,7 @@ export default function WalletPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { isConnected, connectWallet, disconnectWallet, address, isConnecting } = useWeb3();
+  const [showInterestDetails, setShowInterestDetails] = useState(false);
 
   return (
     <div className="min-h-screen bg-app-background pb-20">
@@ -40,10 +41,45 @@ export default function WalletPage() {
           </div>
           <div className="mb-4">
             <p className="text-3xl font-bold">$500.00</p>
-            <div className="text-xs text-green-700 flex items-center mt-1">
+            <div 
+              className="text-xs text-green-700 flex items-center mt-1 cursor-pointer"
+              onClick={() => setShowInterestDetails(!showInterestDetails)}
+            >
               <TrendingUp className="h-3 w-3 mr-1" />
               $50.00 earning 3% APY
+              {showInterestDetails ? 
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1"><path d="m18 15-6-6-6 6"/></svg> : 
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1"><path d="m6 9 6 6 6-6"/></svg>
+              }
             </div>
+            
+            {showInterestDetails && (
+              <div className="mt-3 p-3 rounded-md neumorphic-inset text-xs">
+                <h4 className="font-medium mb-2 text-sm">Interest Earnings</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Daily:</span>
+                    <span className="font-medium text-green-700">+$0.004</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Weekly:</span>
+                    <span className="font-medium text-green-700">+$0.03</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Monthly:</span>
+                    <span className="font-medium text-green-700">+$0.12</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Yearly (3% APY):</span>
+                    <span className="font-medium text-green-700">+$1.50</span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-gray-200 mt-2">
+                    <span className="text-gray-600">Earned so far:</span>
+                    <span className="font-medium text-green-700">+$0.37</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex gap-2 mt-6">
             <Button className="flex-1 primary-action-button" onClick={() => {

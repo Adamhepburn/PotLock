@@ -106,11 +106,7 @@ export default function TopNavigation() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setLocation('/wallet')}>
                   <Wallet className="mr-2 h-4 w-4" />
-                  <span>Wallet</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setLocation('/staking')}>
-                  <PieChart className="mr-2 h-4 w-4" />
-                  <span>Staking</span>
+                  <span>Account Balance</span>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               
@@ -119,7 +115,7 @@ export default function TopNavigation() {
               <DropdownMenuGroup>
                 <DropdownMenuItem onClick={() => setLocation('/deposit')}>
                   <CreditCard className="mr-2 h-4 w-4" />
-                  <span>Deposit Funds</span>
+                  <span>Add Funds</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setLocation('/friends')}>
                   <Users className="mr-2 h-4 w-4" />

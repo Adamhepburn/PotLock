@@ -15,12 +15,12 @@ const USE_DEV_MODE = true;
 // Mock user data for development
 const MOCK_USER: User = {
   id: 999,
-  username: "dev_user",
-  email: "dev@potlock.app",
+  username: "poker_player",
+  email: "player@potlock.app",
   password: "",
-  displayName: "Developer",
+  displayName: "John Smith",
   createdAt: new Date(),
-  walletAddress: "0x123456789abcdef",
+  walletAddress: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F", // Example wallet address
   profileImage: null
 };
 

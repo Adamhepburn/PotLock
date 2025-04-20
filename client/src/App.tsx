@@ -13,6 +13,7 @@ import CashOutPage from "@/pages/cash-out-page";
 import ApprovalPage from "@/pages/approval-page";
 import StakingPage from "@/pages/staking-page";
 import WalletPage from "@/pages/wallet-page";
+import DepositPage from "@/pages/deposit-page";
 import SettingsPage from "@/pages/settings-page";
 import DashboardPage from "@/pages/dashboard-page";
 import AboutPage from "@/pages/about-page";
@@ -40,6 +41,7 @@ function AppRoutes() {
           <ProtectedRoute path="/approval/:requestId" component={ApprovalPage} />
           <ProtectedRoute path="/staking" component={StakingPage} />
           <ProtectedRoute path="/wallet" component={WalletPage} />
+          <ProtectedRoute path="/deposit" component={DepositPage} />
           <ProtectedRoute path="/settings" component={SettingsPage} />
           <Route path="/about" component={AboutPage} />
           <Route component={NotFound} />

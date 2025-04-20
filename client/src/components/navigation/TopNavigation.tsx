@@ -114,7 +114,7 @@ export default function TopNavigation() {
               <DropdownMenuSeparator />
               
               <DropdownMenuGroup>
-                <DropdownMenuItem onClick={() => setLocation('/wallet')}>
+                <DropdownMenuItem onClick={() => setLocation('/deposit')}>
                   <CreditCard className="mr-2 h-4 w-4" />
                   <span>Add Funds</span>
                 </DropdownMenuItem>

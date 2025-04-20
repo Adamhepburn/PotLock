@@ -85,12 +85,7 @@ export default function WalletPage() {
             <Button 
               className="flex-1 shadow-lg"
               style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }} 
-              onClick={() => {
-                toast({
-                  title: "Add Funds",
-                  description: "The deposit feature is coming soon!"
-                });
-              }}
+              onClick={() => navigate('/deposit')}
             >
               Add Funds
             </Button>

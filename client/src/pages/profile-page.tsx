@@ -278,14 +278,14 @@ export default function ProfilePage() {
       {!isViewingFriend && (
         <div className="grid grid-cols-2 gap-4 mb-8">
           <Button 
-            className="neumorphic-button h-14 pastel-gradient text-white shadow-lg"
+            className="neumorphic-button h-14 bg-primary text-white shadow-lg"
             onClick={() => navigate("/deposit")}
           >
             <CreditCard className="h-5 w-5 mr-2" />
             Add Funds
           </Button>
           <Button 
-            className="neumorphic-button h-14 pastel-gradient text-white shadow-lg"
+            className="neumorphic-button h-14 bg-primary text-white shadow-lg"
             onClick={() => navigate("/cashout/1")}
           >
             <DollarSign className="h-5 w-5 mr-2" />

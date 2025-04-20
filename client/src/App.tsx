@@ -41,7 +41,7 @@ function AppRoutes() {
           <ProtectedRoute path="/staking" component={StakingPage} />
           <ProtectedRoute path="/wallet" component={WalletPage} />
           <ProtectedRoute path="/settings" component={SettingsPage} />
-          <ProtectedRoute path="/about" component={AboutPage} />
+          <Route path="/about" component={AboutPage} />
           <Route component={NotFound} />
         </Switch>
       </div>

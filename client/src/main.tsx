@@ -3,6 +3,8 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
+import { AuthProvider } from "./hooks/use-auth";
+import { Web3Provider } from "./hooks/use-web3";
 import App from "./App";
 import "./index.css";
 
@@ -19,7 +21,11 @@ if (!root) {
     createRoot(root).render(
       <React.StrictMode>
         <QueryClientProvider client={queryClient}>
-          <App />
+          <AuthProvider>
+            <Web3Provider>
+              <App />
+            </Web3Provider>
+          </AuthProvider>
         </QueryClientProvider>
       </React.StrictMode>
     );

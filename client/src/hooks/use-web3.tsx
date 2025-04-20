@@ -3,8 +3,49 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
-// Import CoinbaseWalletSDK
-import CoinbaseWalletSDK from "@coinbase/wallet-sdk";
+// For actual implementation, import CoinbaseWalletSDK
+// import CoinbaseWalletSDK from "@coinbase/wallet-sdk";
+
+// Creating a mock CoinbaseWalletSDK for development
+class MockCoinbaseWalletSDK {
+  constructor(config: any) {
+    console.log("Mock Coinbase Wallet SDK initialized with config:", config);
+  }
+
+  makeWeb3Provider(config: any) {
+    console.log("Mock Web3Provider created with config:", config);
+    return {
+      request: async (args: any) => {
+        console.log("Mock request:", args);
+        
+        if (args.method === "eth_requestAccounts") {
+          return ["0x71C7656EC7ab88b098defB751B7401B5f6d8976F"];
+        }
+        
+        if (args.method === "eth_chainId") {
+          return "0x2105"; // Hex of Base Mainnet chain ID (8453)
+        }
+        
+        if (args.method === "eth_sendTransaction") {
+          return "0x" + Math.random().toString(16).substring(2, 42); // Random transaction hash
+        }
+        
+        if (args.method === "personal_sign") {
+          return "0x" + Math.random().toString(16).substring(2, 130); // Random signature
+        }
+        
+        return null;
+      },
+      disconnect: async () => {
+        console.log("Mock disconnect called");
+        return true;
+      }
+    };
+  }
+}
+
+// Use the mock implementation for now
+const CoinbaseWalletSDK = MockCoinbaseWalletSDK;
 
 // This would be replaced with the actual Web3 import in a production app
 // For our mock implementation, we'll create a simplified version
@@ -50,15 +91,11 @@ export function Web3Provider({ children }: { children: ReactNode }) {
       // Initialize a CoinbaseWalletSDK instance
       const coinbaseWalletSDK = new CoinbaseWalletSDK({
         appName: APP_NAME,
-        appLogoUrl: APP_LOGO_URL,
-        darkMode: false
+        appLogoUrl: APP_LOGO_URL
       });
 
-      // Create a provider
-      const coinbaseWalletProvider = coinbaseWalletSDK.makeWeb3Provider(
-        DEFAULT_ETH_JSONRPC_URL, 
-        DEFAULT_CHAIN_ID
-      );
+      // For our mock implementation, we just call the method without parameters
+      const coinbaseWalletProvider = coinbaseWalletSDK.makeWeb3Provider(DEFAULT_ETH_JSONRPC_URL);
 
       setCoinbaseWallet(coinbaseWalletProvider);
     } catch (error) {

@@ -36,92 +36,90 @@ export default function BalanceCard({
   
   return (
     <>
-      <Card className="w-full">
-        <CardHeader className="pb-3">
+      <div className="neumorphic-card w-full p-5">
+        <div className="mb-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center text-lg">
+            <div className="flex items-center text-lg font-semibold text-gray-800">
               <DollarSign className="h-5 w-5 mr-2 text-primary" />
               Balance
-            </CardTitle>
+            </div>
             <Button 
               variant="ghost" 
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 neumorphic-button"
               onClick={() => setIsHidden(!isHidden)}
             >
               {isHidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
             </Button>
           </div>
-          <CardDescription>
+          <div className="text-sm text-gray-500 mt-1">
             Your available and staked funds
-          </CardDescription>
-        </CardHeader>
+          </div>
+        </div>
         
-        <CardContent>
-          <div className="space-y-6">
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Total Balance</span>
-              </div>
-              <div className="mt-1 mb-1">
-                <span className="text-2xl font-bold">
-                  {isHidden ? "••••••" : formatCurrency(totalBalance)}
-                </span>
-              </div>
+        <div className="space-y-6">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-500">Total Balance</span>
             </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <span className="text-sm text-muted-foreground">Available</span>
-                <p className="font-medium">
-                  {isHidden ? "••••••" : formatCurrency(availableBalance)}
-                </p>
-              </div>
-              <div className="space-y-1">
-                <span className="text-sm text-muted-foreground">Staked (5% APY)</span>
-                <p className="font-medium flex items-center">
-                  {isHidden ? "••••••" : formatCurrency(stakedBalance)}
-                  {stakedBalance > 0 && <TrendingUp className="h-3 w-3 ml-1 text-green-500" />}
-                </p>
-              </div>
-            </div>
-            
-            {stakedBalance > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span>Staking Allocation</span>
-                  <span>{Math.round(stakedPercentage)}%</span>
-                </div>
-                <Progress value={stakedPercentage} className="h-1.5" />
-              </div>
-            )}
-            
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                className="flex-1" 
-                size="sm"
-                onClick={() => setDepositModalOpen(true)}
-              >
-                Deposit
-              </Button>
-              <Button 
-                variant="outline" 
-                className="flex-1" 
-                size="sm"
-                onClick={() => setWithdrawModalOpen(true)}
-              >
-                Withdraw
-              </Button>
+            <div className="mt-1 mb-1">
+              <span className="text-2xl font-bold text-gray-800">
+                {isHidden ? "••••••" : formatCurrency(totalBalance)}
+              </span>
             </div>
           </div>
-        </CardContent>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="neumorphic-inset p-3 rounded-xl">
+              <span className="text-sm text-gray-500">Available</span>
+              <p className="font-medium mt-1">
+                {isHidden ? "••••••" : formatCurrency(availableBalance)}
+              </p>
+            </div>
+            <div className="neumorphic-inset p-3 rounded-xl">
+              <span className="text-sm text-gray-500">Staked (5% APY)</span>
+              <p className="font-medium flex items-center mt-1">
+                {isHidden ? "••••••" : formatCurrency(stakedBalance)}
+                {stakedBalance > 0 && <TrendingUp className="h-3 w-3 ml-1 text-green-500" />}
+              </p>
+            </div>
+          </div>
+          
+          {stakedBalance > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span>Staking Allocation</span>
+                <span>{Math.round(stakedPercentage)}%</span>
+              </div>
+              <Progress value={stakedPercentage} className="h-1.5" />
+            </div>
+          )}
+          
+          <div className="flex gap-2">
+            <Button 
+              className="flex-1 neumorphic-button"
+              style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }}
+              size="sm"
+              onClick={() => setDepositModalOpen(true)}
+            >
+              Deposit
+            </Button>
+            <Button 
+              variant="outline" 
+              className="flex-1 neumorphic-button" 
+              size="sm"
+              onClick={() => setWithdrawModalOpen(true)}
+            >
+              Withdraw
+            </Button>
+          </div>
+        </div>
         
         {stakedBalance === 0 && (
-          <CardFooter className="border-t pt-4">
+          <div className="border-t pt-4 mt-4">
             <Button 
               variant="ghost" 
-              className="w-full text-sm justify-between" 
+              className="w-full text-sm justify-between neumorphic-button" 
               onClick={onStake}
             >
               <div className="flex items-center">
@@ -130,9 +128,9 @@ export default function BalanceCard({
               </div>
               <ArrowRight className="h-4 w-4" />
             </Button>
-          </CardFooter>
+          </div>
         )}
-      </Card>
+      </div>
       
       <DepositModal 
         open={depositModalOpen} 

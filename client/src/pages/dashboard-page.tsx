@@ -175,27 +175,20 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <div className="bg-gradient-to-r from-primary to-primary/90 text-white p-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-sm opacity-90">Discover upcoming poker games from your friends</p>
+    <div className="min-h-screen pb-20" style={{ backgroundColor: "#f0f5fa" }}>
+      <div className="neumorphic-card rounded-b-xl mb-6 p-6">
+        <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+        <p className="text-sm text-gray-600">Discover upcoming poker games from your friends</p>
       </div>
       
-      <div className="px-4 py-6">
-        {/* Balance card and wallet section */}
-        <div className="mb-6 space-y-4">
+      <div className="px-4 py-2">
+        {/* Balance card only - Removed wallet connection */}
+        <div className="mb-6">
           {/* Balance Card with Deposit/Withdraw/Stake */}
           <BalanceCard 
             totalBalance={100} 
-            stakedAmount={50} 
-            availableAmount={50}
-            apy={3}
-          />
-          
-          {/* Wallet Connection Card */}
-          <WalletConnect 
-            compact={true}
-            onConnected={(address) => setWalletConnected(true)}
+            stakedBalance={50} 
+            availableBalance={50}
           />
         </div>
       
@@ -207,12 +200,13 @@ export default function DashboardPage() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
             <Input 
               placeholder="Search games..." 
-              className="pl-9" 
+              className="pl-9 neumorphic-inset border-0" 
             />
           </div>
           
           <Button 
             variant={filter === "all" ? "default" : "outline"} 
+            className={filter === "all" ? "neumorphic-inset" : "neumorphic-button"}
             size="sm" 
             onClick={() => setFilter("all")}
           >
@@ -220,6 +214,7 @@ export default function DashboardPage() {
           </Button>
           <Button 
             variant={filter === "friends" ? "default" : "outline"} 
+            className={filter === "friends" ? "neumorphic-inset" : "neumorphic-button"}
             size="sm" 
             onClick={() => setFilter("friends")}
           >
@@ -228,6 +223,7 @@ export default function DashboardPage() {
           </Button>
           <Button 
             variant={filter === "upcoming" ? "default" : "outline"} 
+            className={filter === "upcoming" ? "neumorphic-inset" : "neumorphic-button"}
             size="sm" 
             onClick={() => setFilter("upcoming")}
           >
@@ -238,7 +234,8 @@ export default function DashboardPage() {
         
         {/* Create game button */}
         <Button 
-          className="w-full mb-6 font-medium" 
+          className="w-full mb-6 font-medium neumorphic-button"
+          style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }}
           onClick={() => navigate("/games")}
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -261,28 +258,24 @@ export default function DashboardPage() {
         ) : filteredGames && filteredGames.length > 0 ? (
           <div className="space-y-6">
             {filteredGames.map(game => (
-              <Card key={game.id} className="overflow-hidden">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">{game.name}</CardTitle>
-                      <CardDescription>
-                        <span className="flex items-center gap-1">
-                          <User className="h-3.5 w-3.5" /> 
-                          Hosted by {game.creator.displayName || game.creator.username}
-                        </span>
-                      </CardDescription>
+              <div key={game.id} className="neumorphic-card overflow-hidden p-5">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-800">{game.name}</h3>
+                    <div className="flex items-center gap-1 text-gray-600 text-sm mt-1">
+                      <User className="h-3.5 w-3.5" /> 
+                      Hosted by {game.creator.displayName || game.creator.username}
                     </div>
-                    <Badge variant={game.isPrivate ? "outline" : "secondary"}>
-                      {game.isPrivate ? "Private" : "Open"}
-                    </Badge>
                   </div>
-                </CardHeader>
+                  <Badge variant={game.isPrivate ? "outline" : "secondary"} className={game.isPrivate ? "bg-gray-100" : "bg-primary/10 text-primary border-0"}>
+                    {game.isPrivate ? "Private" : "Open"}
+                  </Badge>
+                </div>
                 
-                <CardContent className="pb-3">
-                  <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="flex items-center">
-                      <CalendarDays className="h-4 w-4 text-gray-500 mr-2" />
+                      <CalendarDays className="h-4 w-4 text-primary mr-2" />
                       <div className="text-sm">
                         {game.gameDate 
                           ? new Date(game.gameDate).toLocaleDateString('en-US', {
@@ -294,7 +287,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <div className="flex items-center">
-                      <Clock className="h-4 w-4 text-gray-500 mr-2" />
+                      <Clock className="h-4 w-4 text-primary mr-2" />
                       <div className="text-sm">
                         {game.gameDate
                           ? new Date(game.gameDate).toLocaleTimeString('en-US', {
@@ -306,9 +299,9 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   
-                  <div className="mb-4">
+                  <div>
                     <div className="flex items-start">
-                      <MapPin className="h-4 w-4 text-gray-500 mt-0.5 mr-2" />
+                      <MapPin className="h-4 w-4 text-primary mt-0.5 mr-2" />
                       <div className="text-sm">
                         {game.location || "Location not specified"}
                       </div>
@@ -316,12 +309,12 @@ export default function DashboardPage() {
                   </div>
                   
                   {game.description && (
-                    <div className="mb-4 text-sm text-gray-600">
+                    <div className="text-sm text-gray-600 border-t border-gray-100 pt-3">
                       {game.description}
                     </div>
                   )}
                   
-                  <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                  <div className="neumorphic-inset flex items-center justify-between py-3 px-4 rounded-lg">
                     <div className="flex items-center">
                       <DollarSign className="h-4 w-4 text-green-600 mr-1" />
                       <span className="font-medium">${game.buyInAmount.toString()}</span>
@@ -329,83 +322,87 @@ export default function DashboardPage() {
                     </div>
                     
                     <div className="flex items-center">
-                      <Users className="h-4 w-4 text-blue-600 mr-1" />
+                      <Users className="h-4 w-4 text-primary mr-1" />
                       <span className="font-medium">{game.reservationCount || 0}</span>
                       <span className="text-xs text-gray-500 ml-1">
                         / {game.maxPlayers || 10} reserved
                       </span>
                     </div>
                   </div>
-                </CardContent>
-                
-                <CardFooter className="flex justify-between pt-0">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate(`/games/${game.id}`)}
-                  >
-                    View Details
-                  </Button>
                   
-                  {game.hasReserved ? (
-                    <Badge className="bg-green-100 text-green-800 border-green-200">
-                      Spot Reserved
-                    </Badge>
-                  ) : reservingGameId === game.id ? (
-                    <div className="flex items-center">
-                      <span className="text-xs mr-2">Reserving...</span>
-                      <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
-                    </div>
-                  ) : (
+                  <div className="flex justify-between items-center pt-3 border-t border-gray-100">
                     <Button 
+                      variant="outline" 
                       size="sm"
-                      onClick={() => handleReserveSpot(game.id, game.buyInAmount.toString())}
+                      className="neumorphic-button"
+                      onClick={() => navigate(`/games/${game.id}`)}
                     >
-                      <PlusCircle className="h-4 w-4 mr-1" />
-                      Reserve Spot
+                      View Details
                     </Button>
-                  )}
-                </CardFooter>
-              </Card>
+                    
+                    {game.hasReserved ? (
+                      <Badge className="bg-green-50 text-green-700 border-green-200">
+                        Spot Reserved
+                      </Badge>
+                    ) : reservingGameId === game.id ? (
+                      <div className="flex items-center">
+                        <span className="text-xs mr-2">Reserving...</span>
+                        <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                      </div>
+                    ) : (
+                      <Button 
+                        size="sm"
+                        className="neumorphic-button bg-primary text-white"
+                        onClick={() => handleReserveSpot(game.id, game.buyInAmount.toString())}
+                      >
+                        <PlusCircle className="h-4 w-4 mr-1" />
+                        Reserve Spot
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         ) : (
-          <Card className="mb-6">
-            <CardContent className="pt-6">
-              <div className="text-center py-12">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-4">
-                  <Calendar className="h-6 w-6 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-medium mb-2">No games found</h3>
-                <p className="text-gray-500 mb-4">
-                  {filter === "all" 
-                    ? "No games have been created yet."
-                    : filter === "friends"
-                    ? "None of your friends have created games yet."
-                    : "No upcoming games found."}
-                </p>
-                <Button onClick={() => navigate("/games")}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Game
-                </Button>
+          <div className="neumorphic-card mb-6 p-6">
+            <div className="text-center py-12">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-4">
+                <Calendar className="h-6 w-6 text-primary" />
               </div>
-            </CardContent>
-          </Card>
+              <h3 className="text-lg font-medium mb-2">No games found</h3>
+              <p className="text-gray-500 mb-4">
+                {filter === "all" 
+                  ? "No games have been created yet."
+                  : filter === "friends"
+                  ? "None of your friends have created games yet."
+                  : "No upcoming games found."}
+              </p>
+              <Button 
+                className="neumorphic-button"
+                style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }}
+                onClick={() => navigate("/games")}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Game
+              </Button>
+            </div>
+          </div>
         )}
       </div>
       
-      {/* Bottom navigation */}
-      <div className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-gray-200 flex items-center justify-around px-6">
-        <Button variant="ghost" className="flex flex-col items-center justify-center h-full bg-gray-50" onClick={() => navigate("/dashboard")}>
-          <Calendar className="h-5 w-5" />
+      {/* Bottom navigation with neumorphic styling */}
+      <div className="fixed bottom-0 left-0 right-0 h-16 flex items-center justify-around px-6 shadow-[0px_-2px_10px_rgba(0,0,0,0.05)]" style={{ backgroundColor: "#f0f5fa" }}>
+        <Button variant="ghost" className="flex flex-col items-center justify-center h-full" onClick={() => navigate("/dashboard")}>
+          <Calendar className="h-5 w-5 text-primary" />
           <span className="text-xs mt-1">Dashboard</span>
         </Button>
         <Button variant="ghost" className="flex flex-col items-center justify-center h-full" onClick={() => navigate("/games")}>
-          <Users className="h-5 w-5" />
-          <span className="text-xs mt-1">Games</span>
+          <Plus className="h-5 w-5 text-primary" />
+          <span className="text-xs mt-1">Create a Game</span>
         </Button>
         <Button variant="ghost" className="flex flex-col items-center justify-center h-full" onClick={() => navigate("/profile")}>
-          <User className="h-5 w-5" />
+          <User className="h-5 w-5 text-primary" />
           <span className="text-xs mt-1">Profile</span>
         </Button>
       </div>

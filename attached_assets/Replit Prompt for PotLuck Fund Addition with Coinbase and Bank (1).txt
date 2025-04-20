@@ -1,0 +1,154 @@
+Add a feature to the PotLuck app in Replit that lets users add funds to their account using Coinbase for onboarding (convert USD to USDC) and directly via their bank account within the app (using Plaid for ACH transfers, converted to USDC via Coinbase). Funds are deposited into the master smart contract (`PotLuck.sol`) on Base, which tracks user balances for poker bets and Aave staking (~3% APY for idle funds, paused during bets). Ensure a non-crypto-friendly UX (e.g., “Add $100” instead of “Buy USDC”), and support Coinbase offboarding (USDC to USD) for withdrawals. Update the frontend, backend, and smart contract in the existing Replit project, which has `frontend` (React Native), `backend` (Node.js), and `contracts` (Solidity/Hardhat) folders, with Coinbase Wallet SDK and `PotLuck.sol` set up on Base Sepolia. Use simple code, specific file paths, and Replit Agent best practices to minimize errors.
+
+**Project Context**:
+- **App Purpose**: PotLuck enables secure poker payouts via blockchain escrow. Users deposit USDC (via Coinbase or bank), play poker, stake idle funds in Aave, and withdraw USDC (via Coinbase or wallet). Targets non-crypto users who value simplicity.
+- **Fund Addition**:
+  - **Coinbase Onboarding**: Users deposit USD via bank/card (Coinbase Buy API, Plaid for ACH), converted to USDC, sent to `PotLuck.sol`.
+  - **Bank Account in App**: Users link their bank via Plaid, initiate ACH transfer, convert USD to USDC via Coinbase, deposit to `PotLuck.sol`.
+  - **Smart Contract**: `PotLuck.sol` holds all USDC, tracks balances (`mapping(address => uint256) balances`), supports bets/staking.
+  - **Offboarding**: Users withdraw USDC to USD via Coinbase Sell API (bank transfer).
+- **Existing Setup**:
+  - `frontend`: React Native with Coinbase Wallet SDK (`frontend/src/LoginScreen.js`), Plaid integration.
+  - `backend`: Node.js with Coinbase APIs (`backend/coinbase.js`), Plaid APIs (`backend/plaid.js`).
+  - `contracts`: `PotLuck.sol` with escrow/staking functions.
+  - Secrets: `COINBASE_API_KEY`, `COINBASE_API_SECRET`, `PLAID_CLIENT_ID`, `PLAID_SECRET`, `ALCHEMY_API_KEY`, `ADMIN_WALLET_PRIVATE_KEY`.
+- **UX Goals**:
+  - Deposit Screen: “Add Funds” → Choose “Bank Account” or “Credit/Debit Card” → “$100 deposited as 100 USDC.”
+  - Dashboard: “Balance: 100 USDC (50 USDC earning 3% APY, 50 USDC in bets).”
+  - Withdraw: “Withdraw 50 USDC” → Bank (Coinbase off-ramp).
+  - Hide jargon: Use “money,” “deposit,” “account” (no “USDC,” “blockchain”).
+
+**Steps**:
+1. **Project Setup**:
+   - Verify folders: `frontend`, `backend`, `contracts`.
+   - Ensure dependencies:
+     - Frontend: `react-plaid-link`, `@coinbase/wallet-sdk`, `web3`.
+     - Backend: `plaid`, `coinbase`, `node-fetch`.
+     - Contracts: `@openzeppelin/contracts`, `@aave/core-v3`.
+   - Run: `cd frontend && npm install react-plaid-link` and `cd backend && npm install plaid coinbase node-fetch`.
+   - Check tucSecrets: `COINBASE_API_KEY`, `COINBASE_API_SECRET`, `PLAID_CLIENT_ID`, `PLAID_SECRET`, `ALCHEMY_API_KEY`, `ADMIN_WALLET_PRIVATE_KEY`.
+   - Update `.replit`: `run = "cd backend && node index.js"` for backend, `cd frontend && npm start` for frontend.
+   - Create checkpoint: “Before fund addition update.”
+
+2. **Smart Contract: Fund Management**:
+   - Update `contracts/PotLuck.sol`:
+     - Define `usdcToken` (Base Sepolia USDC address).
+     - Ensure mappings: `mapping(address => uint256) balances` (total funds), `mapping(address => uint256) idleBalances` (available/staked), `mapping(address => uint256) bets` (locked).
+     - Function `depositUSDC(uint256 amount)`:
+       - Receive USDC (from Coinbase or bank transfer), update `balances` and `idleBalances`.
+       - Use `IERC20(usdcToken).transferFrom` to pull USDC.
+     - Function `withdrawUSDC(uint256 amount, address destination)`:
+       - Withdraw from Aave (if staked), send USDC to `destination` (Coinbase for off-ramp).
+     - Events: `Deposited(address user, uint256 amount)`, `Withdrawn(address user, uint256 amount)`.
+     - Error checks: `require(amount > 0, "Invalid amount")`, `require(idleBalances[msg.sender] >= amount, "Insufficient idle funds")`.
+   - Update `contracts/scripts/deploy.js` to deploy to Base Sepolia.
+   - Write Hardhat tests in `contracts/test/PotLuck.js`:
+     - Test `depositUSDC` and `withdrawUSDC` with $50 deposit/withdrawal.
+   - Create checkpoint: “Smart contract updated.”
+
+3. **Backend: Coinbase and Plaid Integration**:
+   - Update `backend/coinbase.js`:
+     - Endpoint `/coinbase/buy`:
+       - Handle USD deposit (bank/card) via Coinbase Buy API (`/v2/buy`).
+       - Convert USD to USDC, transfer to `PotLuck.sol` using `ADMIN_WALLET_PRIVATE_KEY` for gas.
+       - Return transaction ID and amount.
+     - Endpoint `/coinbase/sell`:
+       - Withdraw USDC from `PotLuck.sol` to Coinbase, convert to USD via Sell API (`/v2/sell`), send to bank.
+     - Handle fees (~1-2.5% on-ramp, 1% off-ramp).
+   - Update `backend/plaid.js`:
+     - Endpoint `/plaid/link-token`: Create Plaid link token (`/link/token/create`) for bank login.
+     - Endpoint `/plaid/exchange`: Exchange `public_token` for `access_token` (`/item/public_token/exchange`).
+     - Endpoint `/plaid/auth`: Verify bank account (`/auth/get`).
+     - Endpoint `/plaid/transfer`: Initiate ACH transfer to Coinbase, trigger `/coinbase/buy` to convert USD to USDC.
+   - Add error handling:
+     - Try-catch for API failures: Return `{ error: "Bank connection failed" }`.
+     - Log errors to Replit console.
+   - Update `backend/index.js` to include `/coinbase` and `/plaid` routes.
+   - Create checkpoint: “Backend updated.”
+
+4. **Frontend: Deposit Screen**:
+   - Update `frontend/src/DepositScreen.js` (or create):
+     - Display: “Add Funds to Your PotLuck Account.”
+     - Input: Amount (e.g., “$100”).
+     - Buttons: “Bank Account” (Plaid ACH) or “Credit/Debit Card” (Coinbase).
+     - **Bank Account**:
+       - Show Plaid Link UI (`react-plaid-link`) to connect bank.
+       - On success, call `/plaid/transfer` to initiate ACH, then `/coinbase/buy` to convert to USDC.
+       - Call `PotLuck.sol`’s `depositUSDC` via Web3.js.
+     - **Credit/Debit Card**:
+       - Call `/coinbase/buy` to process card payment, convert to USDC, deposit to `PotLuck.sol`.
+     - Show progress bar: “Linking Bank > Converting > Deposited.”
+     - Confirmation: “$100 deposited as 100 USDC.”
+   - Add error handling:
+     - Try-catch for API failures: `alert("Bank connection failed. Try again.")`.
+     - Validate amount: `alert("Enter amount greater than $0.")`.
+   - Update `frontend/src/App.js` to include navigation to `DepositScreen`.
+   - Create checkpoint: “Deposit screen updated.”
+
+5. **Frontend: Dashboard and Withdraw**:
+   - Update `frontend/src/DashboardScreen.js`:
+     - Fetch balances from `PotLuck.sol` via Web3.js (`balances`, `idleBalances`, `bets`).
+     - Display: “Balance: [X] USDC ([Y] USDC earning 3% APY, [Z] USDC in bets).”
+     - Buttons: “Add Funds” (to DepositScreen), “Withdraw” (to WithdrawScreen).
+   - Update `frontend/src/WithdrawScreen.js` (or create):
+     - Display: “Withdraw to Your Bank.”
+     - Input: Amount (e.g., “50 USDC”).
+     - Dropdown: Linked bank account (from Plaid).
+     - Call `/coinbase/sell` to withdraw USDC from `PotLuck.sol`, convert to USD, send to bank.
+     - Show: “Withdrawal started! $50 will arrive in 1-3 days.”
+     - Error handling: `alert("Insufficient idle funds.")`, `alert("Bank not linked.")`.
+   - Create checkpoint: “Dashboard and withdraw updated.”
+
+6. **Testing and Debugging**:
+   - Write Hardhat tests in `contracts/test/PotLuck.js`:
+     - Test `depositUSDC` (bank and card) and `withdrawUSDC` with $50.
+   - Test frontend in Replit’s mobile preview:
+     - Deposit $50 via bank (mock Plaid) and card (mock Coinbase).
+     - Verify dashboard: “Balance: 50 USDC (50 USDC earning 3% APY).”
+     - Withdraw $25 to bank, verify: “$25 arriving in 1-3 days.”
+   - Use Base Sepolia faucet (https://www.alchemy.com/faucets/base-sepolia) for test USDC/ETH.
+   - Add console logs: e.g., “Deposit initiated,” “USDC sent to PotLuck.sol.”
+   - Enable Replit Assistant’s “Debug with AI” for syntax fixes.
+   - Create checkpoint: “Tests complete.”
+
+7. **Error Prevention**:
+   - Use exact file paths: e.g., `frontend/src/DepositScreen.js`.
+   - Add one feature at a time: Contract → Backend → Frontend.
+   - Add try-catch in frontend/backend, `require` in Solidity.
+   - Commit to Git: `git commit -m “Added fund deposit feature”`.
+   - Fork project (Replit remix) for backup.
+   - If Agent fails, rollback and rephrase: e.g., “Fix DepositScreen.js Plaid integration.”
+   - Check Replit console for errors, use Assistant for debugging.
+
+8. **Deliverables**:
+   - `contracts/PotLuck.sol`: Updated with `depositUSDC`, `withdrawUSDC`.
+   - `contracts/test/PotLuck.js`: Hardhat tests.
+   - `contracts/scripts/deploy.js`: Deploy script.
+   - `frontend/src/DepositScreen.js`: Fund addition UI (bank/card).
+   - `frontend/src/DashboardScreen.js`: Balance display.
+   - `frontend/src/WithdrawScreen.js`: Withdraw UI.
+   - `backend/coinbase.js`: Buy/Sell endpoints.
+   - `backend/plaid.js`: Bank transfer endpoints.
+   - `backend/index.js`: Updated routes.
+   - Updated `README.md`:
+     - Install: `cd frontend && npm install react-plaid-link`, `cd backend && npm install plaid coinbase node-fetch`.
+     - Run: `cd backend && node index.js`, `cd frontend && npm start`.
+     - Deploy: `cd contracts && npx hardhat run scripts/deploy.js --network base-sepolia`.
+     - Test: “Use Base Sepolia faucet, deposit $50 via bank/card, withdraw $25.”
+     - Secrets: `COINBASE_API_KEY`, `COINBASE_API_SECRET`, `PLAID_CLIENT_ID`, `PLAID_SECRET`, `ALCHEMY_API_KEY`, `ADMIN_WALLET_PRIVATE_KEY`.
+
+**UX Details**:
+- Deposit: “Add Funds” → “Bank Account” or “Credit/Debit Card” → Bank login (Plaid) or card details → “$100 deposited as 100 USDC.”
+- Dashboard: “Balance: 100 USDC (50 USDC earning 3% APY, 50 USDC in bets).”
+- Withdraw: “Withdraw 50 USDC” → Bank → “$50 arriving in 1-3 days.”
+- Hide jargon: Use “deposit,” “money” (no “USDC,” “blockchain”).
+- Show progress bar for deposits: “Linking > Converting > Deposited.”
+- Errors: “Bank connection failed,” “Insufficient funds.”
+
+**Best Practices**:
+- Add components sequentially: Contract → Backend → Frontend.
+- Use Replit Assistant’s “Debug with AI” to fix syntax.
+- Test incrementally: Run contract tests, then frontend.
+- If errors persist, rollback and rephrase prompt for clarity.
+
+Focus on simplicity, clear comments, and a non-crypto-friendly MVP. Do not modify unrelated features (e.g., poker game logic, wallet connection).

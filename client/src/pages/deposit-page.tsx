@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, CreditCard, Building, Wallet, Shield, TrendingUp, DollarSign } from "lucide-react";
 import { useWeb3 } from "@/hooks/use-web3";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import PlaidLinkButton from "@/components/deposit/PlaidLinkButton";
 
 export default function DepositPage() {

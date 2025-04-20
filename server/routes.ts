@@ -867,6 +867,274 @@ export async function registerRoutes(app: Express): Promise<Server> {
     `);
   });
 
+  // Plaid API Routes
+  app.post("/api/plaid/link-token", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const plaidService = require('./plaid');
+      const linkToken = await plaidService.createLinkToken(req.user.id.toString());
+      res.json(linkToken);
+    } catch (error) {
+      console.error("Error creating link token:", error);
+      res.status(500).json({ message: "Failed to create link token" });
+    }
+  });
+
+  app.post("/api/plaid/exchange", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { publicToken } = req.body;
+      if (!publicToken) {
+        return res.status(400).json({ message: "Public token is required" });
+      }
+      
+      const plaidService = require('./plaid');
+      const exchangeResponse = await plaidService.exchangePublicToken(publicToken);
+      
+      // In a real app, you would store this access token with the user in your database
+      // For now, we just return it (not secure for production)
+      res.json({ 
+        accessToken: exchangeResponse.access_token,
+        itemId: exchangeResponse.item_id
+      });
+    } catch (error) {
+      console.error("Error exchanging public token:", error);
+      res.status(500).json({ message: "Failed to exchange public token" });
+    }
+  });
+
+  app.post("/api/plaid/auth", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { accessToken } = req.body;
+      if (!accessToken) {
+        return res.status(400).json({ message: "Access token is required" });
+      }
+      
+      const plaidService = require('./plaid');
+      const authResponse = await plaidService.getBankAccounts(accessToken);
+      res.json(authResponse);
+    } catch (error) {
+      console.error("Error getting bank accounts:", error);
+      res.status(500).json({ message: "Failed to get bank accounts" });
+    }
+  });
+
+  app.post("/api/plaid/transfer", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { accessToken, accountId, amount } = req.body;
+      
+      if (!accessToken || !accountId || !amount) {
+        return res.status(400).json({ 
+          message: "Access token, account ID, and amount are required" 
+        });
+      }
+      
+      if (isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ message: "Amount must be a positive number" });
+      }
+      
+      const plaidService = require('./plaid');
+      const transferResponse = await plaidService.initiateTransfer(
+        accessToken, 
+        accountId, 
+        amount, 
+        req.user.walletAddress || ''
+      );
+      
+      res.json(transferResponse);
+    } catch (error) {
+      console.error("Error initiating transfer:", error);
+      res.status(500).json({ message: "Failed to initiate transfer" });
+    }
+  });
+
+  // Coinbase API Routes
+  app.post("/api/coinbase/buy", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { amount, paymentMethod } = req.body;
+      
+      if (!amount || !paymentMethod) {
+        return res.status(400).json({ 
+          message: "Amount and payment method are required" 
+        });
+      }
+      
+      if (isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ message: "Amount must be a positive number" });
+      }
+      
+      const coinbaseService = require('./coinbase');
+      
+      // Buy USDC using Coinbase API
+      const buyResponse = await coinbaseService.buyUSDC(amount, paymentMethod);
+      
+      // Transfer USDC to PotLock contract
+      const transferResponse = await coinbaseService.transferToPotLock(
+        amount, 
+        req.user.walletAddress || ''
+      );
+      
+      res.json({
+        success: true,
+        buyResponse,
+        transferResponse
+      });
+    } catch (error) {
+      console.error("Error buying USDC:", error);
+      res.status(500).json({ message: "Failed to buy USDC" });
+    }
+  });
+
+  app.post("/api/coinbase/sell", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { amount, paymentMethod } = req.body;
+      
+      if (!amount || !paymentMethod) {
+        return res.status(400).json({ 
+          message: "Amount and payment method are required" 
+        });
+      }
+      
+      if (isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ message: "Amount must be a positive number" });
+      }
+      
+      const coinbaseService = require('./coinbase');
+      // Sell USDC using Coinbase API
+      const sellResponse = await coinbaseService.sellUSDC(amount, paymentMethod);
+      
+      res.json({
+        success: true,
+        sellResponse
+      });
+    } catch (error) {
+      console.error("Error selling USDC:", error);
+      res.status(500).json({ message: "Failed to sell USDC" });
+    }
+  });
+
+  app.get("/api/coinbase/payment-methods", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const coinbaseService = require('./coinbase');
+      const paymentMethods = await coinbaseService.getPaymentMethods();
+      res.json(paymentMethods);
+    } catch (error) {
+      console.error("Error getting payment methods:", error);
+      res.status(500).json({ message: "Failed to get payment methods" });
+    }
+  });
+
+  // PotLock Contract Routes
+  app.get("/api/balances", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      if (!req.user.walletAddress) {
+        return res.status(400).json({ message: "Wallet address is not configured for your account" });
+      }
+      
+      const potlockContract = require('./potlock-contract');
+      const balances = await potlockContract.getUserBalances(req.user.walletAddress);
+      res.json(balances);
+    } catch (error) {
+      console.error("Error getting user balances:", error);
+      res.status(500).json({ message: "Failed to get user balances" });
+    }
+  });
+
+  app.post("/api/deposit", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { amount } = req.body;
+      
+      if (!amount) {
+        return res.status(400).json({ message: "Amount is required" });
+      }
+      
+      if (isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ message: "Amount must be a positive number" });
+      }
+      
+      if (!req.user.walletAddress) {
+        return res.status(400).json({ message: "Wallet address is not configured for your account" });
+      }
+      
+      const potlockContract = require('./potlock-contract');
+      const depositResponse = await potlockContract.depositForUser(req.user.walletAddress, amount);
+      res.json(depositResponse);
+    } catch (error) {
+      console.error("Error depositing to contract:", error);
+      res.status(500).json({ message: "Failed to deposit to contract" });
+    }
+  });
+
+  app.post("/api/withdraw", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { amount, destinationAddress } = req.body;
+      
+      if (!amount || !destinationAddress) {
+        return res.status(400).json({ 
+          message: "Amount and destination address are required" 
+        });
+      }
+      
+      if (isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ message: "Amount must be a positive number" });
+      }
+      
+      if (!req.user.walletAddress) {
+        return res.status(400).json({ message: "Wallet address is not configured for your account" });
+      }
+      
+      const potlockContract = require('./potlock-contract');
+      const withdrawResponse = await potlockContract.withdrawForUser(
+        req.user.walletAddress, 
+        amount, 
+        destinationAddress
+      );
+      
+      res.json(withdrawResponse);
+    } catch (error) {
+      console.error("Error withdrawing from contract:", error);
+      res.status(500).json({ message: "Failed to withdraw from contract" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

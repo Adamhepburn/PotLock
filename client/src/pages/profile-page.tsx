@@ -148,7 +148,7 @@ export default function ProfilePage() {
   const recentActivity = [
     { type: 'game_join', description: 'Joined "Friday Night Poker"', date: '3 days ago' },
     { type: 'cash_out', description: 'Cashed out $75.00', date: '5 days ago' },
-    { type: 'staking', description: 'Staked 100 USDC in Aave', date: '1 week ago' },
+    { type: 'staking', description: 'Earned interest on $100', date: '1 week ago' },
     { type: 'game_win', description: 'Won $120 in "Texas Hold\'em Classic"', date: '2 weeks ago' },
   ];
   
@@ -221,13 +221,7 @@ export default function ProfilePage() {
                     `@${activeUser?.username || "username"}` : activeUser?.email || "email"}
                 </p>
                 
-                {/* Connection status badge */}
-                {!isViewingFriend && (
-                  <div className="flex items-center text-xs mt-2 bg-gray-100 w-fit rounded-full px-2 py-1">
-                    <div className={`w-2 h-2 ${isConnected ? "bg-green-400" : "bg-gray-400"} rounded-full mr-1.5`}></div>
-                    <span className="text-gray-600">{isConnected ? "Wallet Connected" : "Wallet Not Connected"}</span>
-                  </div>
-                )}
+                {/* Removed wallet connection status */}
               </div>
               
               {isViewingFriend && (

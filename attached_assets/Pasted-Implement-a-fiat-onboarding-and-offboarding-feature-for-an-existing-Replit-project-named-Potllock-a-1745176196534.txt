@@ -1,0 +1,37 @@
+Implement a fiat onboarding and offboarding feature for an existing Replit project named Potllock, a mobile app on the Base network, allowing non-crypto users to deposit USD (converted to USDC) via bank accounts or cards, use USDC for poker games or Aave staking, and withdraw USDC as USD to their bank. Use Coinbase for both on-ramp (USD to USDC) and off-ramp (USDC to USD), integrating Coinbase’s Buy/Sell APIs and Plaid for bank linking. Ensure a user-friendly UX that hides blockchain jargon (e.g., “Deposit $100” instead of “Buy USDC”), showing idle funds earning ~3% APY in Aave and locked funds in bets (no interest). Support long-term bets with a post-resolution staking bonus (7-day Aave staking). Assume the project has folders: `frontend` (React Native), `backend` (Node.js), `contracts` (Solidity/Hardhat), with Coinbase Wallet SDK and `PotLock.sol` already set up. Focus only on onboarding/offboarding and UX, ensuring minimal errors with specific file paths, error handling, Replit Agent best practices, and rollback checkpoints.
+
+**Project Context**:
+- **App Purpose**: PotLock enables secure poker payouts via blockchain escrow, allowing users to deposit USDC, play poker, stake idle funds in Aave for ~3% APY, and withdraw funds. Targets non-crypto users (males 18-40) who value simplicity and trust.
+- **Existing Setup**:
+  - `frontend`: React Native app with Coinbase Wallet SDK for custodial wallet management (`frontend/src/LoginScreen.js`).
+  - `contracts`: `PotLock.sol` handles USDC escrow, with functions like `lockBet` and `depositAndStake` for Aave (Base Sepolia).
+  - `backend`: Node.js for API calls, with `COINBASE_API_KEY` and `ALCHEMY_API_KEY` in Secrets tab.
+- **UX Goals** (non-crypto friendly):
+  - Deposit: “Add Funds” → Bank/card → “$100 deposited as 100 USDC.”
+  - Dashboard: “Balance: 100 USDC (50 USDC earning 3% APY, 50 USDC in bets).”
+  - Staking: Modal: “Earn 3% on 50 USDC until next game?” → “Invested!”
+  - Long-Term Bets: “Join 2-week tournament? 50 USDC locked.” Post-bet: “Won 75 USDC! Stake for 7 days?”
+  - Withdraw: “Withdraw 50 USDC ($50)” → “$50 arriving in 1-3 days.”
+- **DeFi Integration**: Idle USDC stakes in Aave via `PotLock.sol`. Bet-locked funds pause interest. Long-term bets offer 7-day staking bonus post-resolution.
+
+**Steps**:
+1. **Project Setup**:
+   - Verify folders: `frontend` (React Native), `backend` (Node.js), `contracts` (Solidity/Hardhat).
+   - Install dependencies:
+     - Frontend: `react-plaid-link` (bank UI), ensure `@coinbase/wallet-sdk`, `web3`, `react-native-modal` are installed.
+     - Backend: `plaid`, `coinbase`, `node-fetch`.
+     - Contracts: Ensure `@openzeppelin/contracts`, `@aave/core-v3` are installed.
+   - Run: `cd frontend && npm install react-plaid-link` and `cd backend && npm install plaid coinbase node-fetch`.
+   - Add Secrets (Replit Secrets tab): `PLAID_CLIENT_ID`, `PLAID_SECRET`, `COINBASE_API_KEY`, `COINBASE_API_SECRET`, `ALCHEMY_API_KEY`, `ADMIN_WALLET_PRIVATE_KEY` (for gas fees).
+   - Update `.replit`: `run = "cd backend && node index.js"` for backend, `cd frontend && npm start` for frontend.
+   - Create checkpoint: “Initial setup complete.”
+
+2. **Frontend: Deposit Screen (On-Ramp)**:
+   - Create `frontend/src/DepositScreen.js`:
+     - Display: “Add Funds to Play Poker or Earn Interest.”
+     - Input: Amount (e.g., “$100”).
+     - Buttons: “Bank Account” (Plaid) or “Credit/Debit Card” (Coinbase).
+     - On “Bank Account,” show Plaid Link UI (via `react-plaid-link`).
+     - On Plaid success, send `public_token` to `backend/plaid.js` to link bank.
+     - Call `backend/coinbase.js` to buy USDC, deposit to `PotLock.sol`.
+     - Show: “$100 deposited as 100 USDC! Ready to play or earn.”

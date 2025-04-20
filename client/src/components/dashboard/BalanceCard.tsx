@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PiggyBank, Wallet, TrendingUp, CreditCard, ArrowDownToLine, Loader2 } from "lucide-react";
 import DepositModal from "@/components/deposit/DepositModal";
-import WithdrawModal from "@/components/withdrawal/WithdrawModal";
+import { WithdrawModal } from "@/components/withdrawal/WithdrawModal";
 import StakingModalEnhanced from "@/components/staking/StakingModalEnhanced";
 
 interface BalanceCardProps {

@@ -1,190 +1,384 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CreditCard, Building2, DollarSign, PiggyBank, ArrowRight, Loader2 } from "lucide-react";
+import { 
+  CreditCard, 
+  Building, 
+  ArrowRight, 
+  Check, 
+  Loader2, 
+  DollarSign,
+  ShieldCheck
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import PlaidLinkButton from "./PlaidLinkButton";
-import CoinbaseCardForm from "./CoinbaseCardForm";
 
 interface DepositModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultAmount?: string;
 }
 
-export function DepositModal({ open, onOpenChange }: DepositModalProps) {
-  const [amount, setAmount] = useState("");
-  const [depositMethod, setDepositMethod] = useState<"bank" | "card">("bank");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+export default function DepositModal({ 
+  open, 
+  onOpenChange,
+  defaultAmount = "100"
+}: DepositModalProps) {
   const { toast } = useToast();
-
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Only allow numbers and decimal point
-    const value = e.target.value.replace(/[^0-9.]/g, "");
-    // Only allow one decimal point
-    if (value.split(".").length > 2) return;
-    setAmount(value);
-  };
-
+  const [activeTab, setActiveTab] = useState<string>("card");
+  const [amount, setAmount] = useState<string>(defaultAmount);
+  const [cardNumber, setCardNumber] = useState<string>("");
+  const [expiryDate, setExpiryDate] = useState<string>("");
+  const [cvv, setCvv] = useState<string>("");
+  const [cardholderName, setCardholderName] = useState<string>("");
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  
   const resetForm = () => {
-    setAmount("");
+    setAmount(defaultAmount);
+    setCardNumber("");
+    setExpiryDate("");
+    setCvv("");
+    setCardholderName("");
     setIsProcessing(false);
     setIsSuccess(false);
   };
-
-  const handleDepositSuccess = () => {
-    setIsProcessing(false);
-    setIsSuccess(true);
+  
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
+  
+  const formatCardNumber = (value: string) => {
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, "");
     
-    // Simulate deposit confirmation
-    setTimeout(() => {
-      // Here we would actually update the user's balance on the server
-      toast({
-        title: "Deposit Successful",
-        description: `$${amount} has been deposited as ${amount} USDC. Ready to play or earn!`,
-      });
-      onOpenChange(false);
-      resetForm();
-    }, 1500);
+    // Format with spaces every 4 digits
+    let formatted = "";
+    for (let i = 0; i < digits.length; i++) {
+      if (i > 0 && i % 4 === 0) {
+        formatted += " ";
+      }
+      formatted += digits[i];
+    }
+    
+    return formatted;
   };
-
-  const handleClose = () => {
-    onOpenChange(false);
-    // Reset form after a brief delay to avoid visual glitches
-    setTimeout(resetForm, 300);
+  
+  const formatExpiryDate = (value: string) => {
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, "");
+    
+    // Format as MM/YY
+    if (digits.length <= 2) {
+      return digits;
+    } else {
+      return `${digits.substring(0, 2)}/${digits.substring(2, 4)}`;
+    }
   };
-
-  const handleProcessDeposit = () => {
-    // Validate amount
-    if (!amount || parseFloat(amount) <= 0) {
-      toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid deposit amount.",
-        variant: "destructive",
-      });
+  
+  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCardNumber(e.target.value);
+    // Limit to 19 characters (16 digits + 3 spaces)
+    setCardNumber(formatted.substring(0, 19));
+  };
+  
+  const handleExpiryDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatExpiryDate(e.target.value);
+    // Limit to 5 characters (MM/YY)
+    setExpiryDate(formatted.substring(0, 5));
+  };
+  
+  const handleCvvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Limit to 3-4 digits
+    const value = e.target.value.replace(/\D/g, "").substring(0, 4);
+    setCvv(value);
+  };
+  
+  const handleCardholderNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCardholderName(e.target.value);
+  };
+  
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Accept only numeric and decimal point
+    const value = e.target.value.replace(/[^\d.]/g, "");
+    
+    // Ensure only one decimal point
+    const parts = value.split(".");
+    if (parts.length > 2) {
       return;
     }
-
+    
+    // Limit to 2 decimal places
+    if (parts.length === 2 && parts[1].length > 2) {
+      return;
+    }
+    
+    setAmount(value);
+  };
+  
+  const validateCardForm = () => {
+    if (!amount || parseFloat(amount) <= 0) {
+      toast({
+        title: "Invalid amount",
+        description: "Please enter a valid amount to deposit",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    if (!cardNumber || cardNumber.replace(/\s/g, "").length < 16) {
+      toast({
+        title: "Invalid card number",
+        description: "Please enter a valid 16-digit card number",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    if (!expiryDate || expiryDate.length < 5) {
+      toast({
+        title: "Invalid expiry date",
+        description: "Please enter a valid expiry date (MM/YY)",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    if (!cvv || cvv.length < 3) {
+      toast({
+        title: "Invalid CVV",
+        description: "Please enter a valid CVV code",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    if (!cardholderName) {
+      toast({
+        title: "Missing cardholder name",
+        description: "Please enter the cardholder name",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    return true;
+  };
+  
+  const handleSubmit = async () => {
+    if (!validateCardForm()) {
+      return;
+    }
+    
     setIsProcessing(true);
     
-    // In a real implementation, this would call an API to process the deposit
-    // For our mock implementation, we'll just simulate a successful deposit after a delay
-    setTimeout(handleDepositSuccess, 2000);
+    try {
+      // Simulate API call to process payment
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Success
+      setIsSuccess(true);
+      
+      toast({
+        title: "Deposit successful",
+        description: `$${amount} has been added to your account`,
+      });
+      
+      // Close modal after showing success state
+      setTimeout(() => {
+        onOpenChange(false);
+        resetForm();
+      }, 2000);
+    } catch (error: any) {
+      console.error("Error processing deposit:", error);
+      toast({
+        title: "Deposit failed",
+        description: error.message || "An error occurred while processing your deposit",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      onOpenChange(isOpen);
+      if (!isOpen) resetForm();
+    }}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add Funds</DialogTitle>
           <DialogDescription>
-            Deposit USD to play poker or earn interest on your idle funds.
+            Add money to your account using a card or bank transfer.
           </DialogDescription>
         </DialogHeader>
-
-        {!isSuccess ? (
-          <>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="amount">Amount to Deposit (USD)</Label>
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+        
+        <Tabs defaultValue="card" className="mt-2" onValueChange={handleTabChange}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="card" className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              <span>Card</span>
+            </TabsTrigger>
+            <TabsTrigger value="bank" className="flex items-center gap-2">
+              <Building className="h-4 w-4" />
+              <span>Bank</span>
+            </TabsTrigger>
+          </TabsList>
+          
+          {/* Card Tab */}
+          <TabsContent value="card" className="mt-4">
+            {isSuccess ? (
+              <div className="py-6 flex flex-col items-center justify-center text-center">
+                <div className="w-16 h-16 flex items-center justify-center rounded-full bg-green-100 mb-4">
+                  <Check className="h-8 w-8 text-green-600" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Deposit Complete!</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  ${amount} has been added to your account
+                </p>
+                <Button variant="outline" onClick={() => {
+                  onOpenChange(false);
+                  resetForm();
+                }}>
+                  Done
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="deposit-amount">Amount (USD)</Label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      id="deposit-amount"
+                      placeholder="0.00"
+                      className="pl-10"
+                      value={amount}
+                      onChange={handleAmountChange}
+                      disabled={isProcessing}
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="card-number">Card Number</Label>
                   <Input
-                    id="amount"
-                    placeholder="100.00"
-                    className="pl-10"
-                    value={amount}
-                    onChange={handleAmountChange}
+                    id="card-number" 
+                    placeholder="4242 4242 4242 4242"
+                    value={cardNumber}
+                    onChange={handleCardNumberChange}
                     disabled={isProcessing}
                   />
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {amount ? `Will be converted to ${amount} USDC` : "Enter an amount to deposit"}
-                </p>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="expiry-date">Expiry Date</Label>
+                    <Input 
+                      id="expiry-date" 
+                      placeholder="MM/YY"
+                      value={expiryDate}
+                      onChange={handleExpiryDateChange}
+                      disabled={isProcessing}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cvv">CVV</Label>
+                    <Input 
+                      id="cvv" 
+                      placeholder="123"
+                      value={cvv}
+                      onChange={handleCvvChange}
+                      disabled={isProcessing}
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="cardholder-name">Cardholder Name</Label>
+                  <Input 
+                    id="cardholder-name" 
+                    placeholder="J. Doe"
+                    value={cardholderName}
+                    onChange={handleCardholderNameChange}
+                    disabled={isProcessing}
+                  />
+                </div>
+                
+                <div className="text-xs text-muted-foreground flex items-center mt-4">
+                  <ShieldCheck className="h-4 w-4 mr-1 text-green-600" />
+                  Your payment information is secure and encrypted
+                </div>
               </div>
-
-              <Tabs defaultValue="bank" className="w-full" onValueChange={(value) => setDepositMethod(value as "bank" | "card")}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="bank" disabled={isProcessing}>
-                    <Building2 className="mr-2 h-4 w-4" />
-                    Bank Account
-                  </TabsTrigger>
-                  <TabsTrigger value="card" disabled={isProcessing}>
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Credit/Debit Card
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="bank" className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <p className="text-sm">
-                      Link your bank account to deposit funds directly. Bank transfers typically take 1-3 business days to process.
-                    </p>
-                    
-                    {/* In a real implementation, this would use the Plaid Link SDK */}
-                    <PlaidLinkButton 
-                      disabled={isProcessing || !amount || parseFloat(amount) <= 0}
-                      onSuccess={handleProcessDeposit}
-                    />
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="card" className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <p className="text-sm">
-                      Deposit using your credit or debit card for instant funding. A 2.5% processing fee applies.
-                    </p>
-                    
-                    {/* Card form component */}
-                    <CoinbaseCardForm 
-                      disabled={isProcessing || !amount || parseFloat(amount) <= 0}
-                      onSubmit={handleProcessDeposit}
-                    />
-                  </div>
-                </TabsContent>
-              </Tabs>
+            )}
+          </TabsContent>
+          
+          {/* Bank Tab */}
+          <TabsContent value="bank" className="mt-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="bank-amount">Amount (USD)</Label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                <Input
+                  id="bank-amount"
+                  placeholder="0.00"
+                  className="pl-10"
+                  value={amount}
+                  onChange={handleAmountChange}
+                  disabled={isProcessing}
+                />
+              </div>
             </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={handleClose} disabled={isProcessing}>
-                Cancel
-              </Button>
-              <Button onClick={handleProcessDeposit} disabled={isProcessing || !amount || parseFloat(amount) <= 0}>
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  "Deposit Funds"
-                )}
-              </Button>
-            </DialogFooter>
-          </>
-        ) : (
-          <div className="py-6 flex flex-col items-center justify-center space-y-4">
-            <div className="rounded-full bg-primary/10 p-3">
-              <PiggyBank className="h-10 w-10 text-primary" />
+            
+            <div className="p-4 border rounded-md bg-gray-50">
+              <h4 className="text-sm font-medium mb-2">Link your bank account</h4>
+              <p className="text-xs text-muted-foreground mb-4">
+                Securely connect your bank account to deposit funds directly.
+              </p>
+              
+              <PlaidLinkButton amount={amount} />
             </div>
-            <h3 className="text-xl font-semibold text-center">Deposit Successful!</h3>
-            <p className="text-center text-muted-foreground">
-              ${amount} has been deposited as {amount} USDC
-            </p>
-            <div className="flex items-center justify-center gap-2 bg-muted p-2 rounded-md">
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">{amount} USDC Added to Your Balance</span>
+            
+            <div className="text-xs text-muted-foreground flex items-center mt-2">
+              <ShieldCheck className="h-4 w-4 mr-1 text-green-600" />
+              Your bank information is secure and encrypted
             </div>
-            <Button onClick={handleClose} className="mt-4">
-              Done
+          </TabsContent>
+        </Tabs>
+        
+        {activeTab === "card" && !isSuccess && (
+          <DialogFooter className="mt-4">
+            <Button
+              type="submit"
+              className="w-full"
+              onClick={handleSubmit}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  Add ${amount || "0"} <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
             </Button>
-          </div>
+          </DialogFooter>
         )}
       </DialogContent>
     </Dialog>
   );
 }
-
-export default DepositModal;

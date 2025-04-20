@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Game, InsertGameReservation } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
 
 import { Button } from "@/components/ui/button";
 import { 
@@ -28,8 +29,13 @@ import {
   CalendarDays,
   Search,
   Star,
-  PlusCircle
+  PlusCircle,
+  Wallet
 } from "lucide-react";
+
+// Import our new components
+import BalanceCard from "@/components/dashboard/BalanceCard";
+import WalletConnect from "@/components/wallet/WalletConnect";
 
 // Extended Game type with user data
 type ExtendedGame = Game & {
@@ -43,13 +49,8 @@ type ExtendedGame = Game & {
 
 export default function DashboardPage() {
   const [, navigate] = useLocation();
-  // Mock auth to prevent provider issues
-  const mockUser = {
-    id: 1,
-    username: "demo_user",
-    email: "demo@example.com"
-  };
-  const user = mockUser;
+  const { user, devMode } = useAuth();
+  const [walletConnected, setWalletConnected] = useState(false);
   
   const [reservingGameId, setReservingGameId] = useState<number | null>(null);
   const [depositAmount, setDepositAmount] = useState<string>("");
@@ -181,6 +182,25 @@ export default function DashboardPage() {
       </div>
       
       <div className="px-4 py-6">
+        {/* Balance card and wallet section */}
+        <div className="mb-6 space-y-4">
+          {/* Balance Card with Deposit/Withdraw/Stake */}
+          <BalanceCard 
+            totalBalance={100} 
+            stakedAmount={50} 
+            availableAmount={50}
+            apy={3}
+          />
+          
+          {/* Wallet Connection Card */}
+          <WalletConnect 
+            compact={true}
+            onConnected={(address) => setWalletConnected(true)}
+          />
+        </div>
+      
+        <h2 className="text-xl font-semibold mb-4">Upcoming Games</h2>
+        
         {/* Search and filters */}
         <div className="flex items-center gap-2 mb-6 overflow-x-auto py-2">
           <div className="relative flex-1">

@@ -1,202 +1,101 @@
 import { createContext, ReactNode, useContext, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import escrowABI from "../contracts/EscrowContract.json";
-import { ethers } from "ethers";
-import { apiRequest, queryClient } from "../lib/queryClient";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+
+// Import CoinbaseWalletSDK
 import CoinbaseWalletSDK from "@coinbase/wallet-sdk";
 
-// Coinbase Wallet configuration
-const APP_NAME = "PotLock";
-const APP_LOGO_URL = "https://example.com/logo.png";
-const DEFAULT_ETH_JSONRPC_URL = "https://mainnet.base.org"; // Base mainnet RPC URL
-const DEFAULT_CHAIN_ID = 8453; // Base mainnet
-
-// Create Coinbase Wallet provider instance
-let coinbaseWallet: any = null;
-let coinbaseProvider: any = null;
-
-// Define Web3 context type
-type Web3ContextType = {
-  provider: ethers.BrowserProvider | null;
-  signer: ethers.Signer | null;
+// This would be replaced with the actual Web3 import in a production app
+// For our mock implementation, we'll create a simplified version
+interface Web3ContextType {
   isConnected: boolean;
   isConnecting: boolean;
-  connectWallet: () => Promise<void>;
-  disconnectWallet: () => void;
-  getContract: (address: string) => ethers.Contract | null;
-  networkName: string | null;
-  chainId: number | null;
   address: string | null;
+  networkName: string | null;
+  connectWallet: () => Promise<void>;
+  disconnectWallet: () => Promise<void>;
+  sendTransaction: (to: string, amount: string) => Promise<any>;
+  signMessage: (message: string) => Promise<string>;
+}
+
+// Create context
+export const Web3Context = createContext<Web3ContextType | null>(null);
+
+// Network information
+const NETWORK_NAMES: {[key: string]: string} = {
+  "1": "Ethereum",
+  "137": "Polygon",
+  "8453": "Base",
 };
 
-const Web3Context = createContext<Web3ContextType | null>(null);
-
-// USDC contract addresses (Mainnet, Testnet)
-const USDC_CONTRACT_ADDRESSES: Record<string, string> = {
-  // Base Mainnet
-  "8453": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-  // Base Sepolia (Testnet)
-  "84532": "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
-};
-
-// Initialize Coinbase Wallet
-const initializeCoinbaseWallet = () => {
-  if (!coinbaseWallet) {
-    coinbaseWallet = new CoinbaseWalletSDK({
-      appName: APP_NAME,
-      appLogoUrl: APP_LOGO_URL
-    });
-    
-    coinbaseProvider = coinbaseWallet.makeWeb3Provider(
-      DEFAULT_ETH_JSONRPC_URL, 
-      DEFAULT_CHAIN_ID
-    );
-  }
-  return coinbaseProvider;
-};
-
-// Create a provider component
+// Provider component
 export function Web3Provider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  
-  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
-  const [signer, setSigner] = useState<ethers.Signer | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
-  const [networkName, setNetworkName] = useState<string | null>(null);
-  const [chainId, setChainId] = useState<number | null>(null);
+  const [networkId, setNetworkId] = useState<string | null>(null);
+  const [coinbaseWallet, setCoinbaseWallet] = useState<any>(null);
 
-  // Effect to check if Coinbase Wallet is already connected
+  // Setup Coinbase Wallet on component mount
   useEffect(() => {
-    const checkConnection = async () => {
-      try {
-        // Initialize Coinbase Wallet
-        const provider = initializeCoinbaseWallet();
-        
-        if (provider) {
-          // Check if user is already connected
-          const accounts = await provider.request({ method: 'eth_accounts' });
-          
-          if (accounts && accounts.length > 0) {
-            // User is already connected
-            const ethersProvider = new ethers.BrowserProvider(provider);
-            const ethersSigner = await ethersProvider.getSigner();
-            const network = await ethersProvider.getNetwork();
-            
-            setProvider(ethersProvider);
-            setSigner(ethersSigner);
-            setAddress(accounts[0]);
-            setNetworkName(network.name);
-            setChainId(Number(network.chainId));
-            setIsConnected(true);
-            
-            // Sync wallet address with server
-            try {
-              await apiRequest("POST", "/api/user/wallet", { walletAddress: accounts[0] });
-            } catch (error) {
-              // If not logged in or other error, this will fail silently
-              console.log("Not updating wallet address - user may not be logged in");
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error checking connection:", error);
-      }
-    };
+    try {
+      // Initialize Coinbase Wallet SDK
+      const APP_NAME = "PotLock";
+      const APP_LOGO_URL = "https://example.com/logo.png";
+      const DEFAULT_ETH_JSONRPC_URL = "https://mainnet.base.org";
+      const DEFAULT_CHAIN_ID = 8453; // Base Mainnet
 
-    checkConnection();
+      // Initialize a CoinbaseWalletSDK instance
+      const coinbaseWalletSDK = new CoinbaseWalletSDK({
+        appName: APP_NAME,
+        appLogoUrl: APP_LOGO_URL,
+        darkMode: false
+      });
+
+      // Create a provider
+      const coinbaseWalletProvider = coinbaseWalletSDK.makeWeb3Provider(
+        DEFAULT_ETH_JSONRPC_URL, 
+        DEFAULT_CHAIN_ID
+      );
+
+      setCoinbaseWallet(coinbaseWalletProvider);
+    } catch (error) {
+      console.error("Failed to initialize Coinbase Wallet SDK:", error);
+    }
   }, []);
 
-  // Set up event listeners for account and chain changes
-  useEffect(() => {
-    if (coinbaseProvider && provider) {
-      // Handle account changes
-      const handleAccountsChanged = async (accounts: string[]) => {
-        if (accounts.length === 0) {
-          // User disconnected
-          disconnectWallet();
-        } else if (accounts[0] !== address) {
-          // Account changed
-          setAddress(accounts[0]);
-          
-          // Update provider and signer with new account
-          if (provider) {
-            const ethersSigner = await provider.getSigner();
-            setSigner(ethersSigner);
-            
-            // Sync wallet address with server
-            try {
-              await apiRequest("POST", "/api/user/wallet", { walletAddress: accounts[0] });
-            } catch (error) {
-              // If not logged in or other error, this will fail silently
-              console.log("Not updating wallet address - user may not be logged in");
-            }
-          }
-        }
-      };
-
-      // Handle chain changes
-      const handleChainChanged = (chainIdHex: string) => {
-        // Force page reload to ensure everything is in sync
-        window.location.reload();
-      };
-
-      // Subscribe to events
-      coinbaseProvider.on('accountsChanged', handleAccountsChanged);
-      coinbaseProvider.on('chainChanged', handleChainChanged);
-
-      // Cleanup function
-      return () => {
-        coinbaseProvider.removeListener('accountsChanged', handleAccountsChanged);
-        coinbaseProvider.removeListener('chainChanged', handleChainChanged);
-      };
-    }
-  }, [provider, address]);
-
-  // Connect wallet function
+  // Function to connect wallet
   const connectWallet = async () => {
-    // Initialize Coinbase Wallet if not already initialized
-    const provider = initializeCoinbaseWallet();
-    
-    if (!provider) {
-      toast({
-        title: "Wallet connection failed",
-        description: "Coinbase Wallet provider not initialized",
-        variant: "destructive",
-      });
-      return;
+    if (!coinbaseWallet) {
+      throw new Error("Coinbase Wallet SDK not initialized");
     }
-
+    
     setIsConnecting(true);
-
+    
     try {
-      // Request accounts access
-      const accounts = await provider.request({ method: 'eth_requestAccounts' });
-      
-      const ethersProvider = new ethers.BrowserProvider(provider);
-      const ethersSigner = await ethersProvider.getSigner();
-      const network = await ethersProvider.getNetwork();
-      
-      setProvider(ethersProvider);
-      setSigner(ethersSigner);
-      setAddress(accounts[0]);
-      setNetworkName(network.name);
-      setChainId(Number(network.chainId));
-      setIsConnected(true);
-      
-      // Sync wallet address with server
-      try {
-        await apiRequest("POST", "/api/user/wallet", { walletAddress: accounts[0] });
-      } catch (error) {
-        // If not logged in or other error, this will fail silently
-        console.log("Not updating wallet address - user may not be logged in");
-      }
-      
-      toast({
-        title: "Wallet Connected",
-        description: `Connected to ${accounts[0].substring(0, 6)}...${accounts[0].substring(38)}`,
+      // Trigger connection
+      const accounts = await coinbaseWallet.request({
+        method: "eth_requestAccounts"
       });
+      
+      // Get network
+      const chainId = await coinbaseWallet.request({
+        method: "eth_chainId"
+      });
+      
+      // Set state
+      if (accounts && accounts.length > 0) {
+        setAddress(accounts[0]);
+        setNetworkId(parseInt(chainId, 16).toString());
+        setIsConnected(true);
+        
+        toast({
+          title: "Connected",
+          description: `Wallet connected successfully!`,
+        });
+      }
     } catch (error: any) {
       console.error("Error connecting wallet:", error);
       toast({
@@ -204,59 +103,115 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         description: error.message || "Failed to connect wallet",
         variant: "destructive",
       });
+      throw error;
     } finally {
       setIsConnecting(false);
     }
   };
 
-  // Disconnect wallet function
-  const disconnectWallet = () => {
-    if (coinbaseWallet) {
-      coinbaseWallet.disconnect();
-    }
-    
-    setProvider(null);
-    setSigner(null);
-    setAddress(null);
-    setNetworkName(null);
-    setChainId(null);
-    setIsConnected(false);
-    
-    toast({
-      title: "Wallet Disconnected",
-      description: "Your wallet has been disconnected.",
-    });
-  };
-
-  // Get contract instance
-  const getContract = (contractAddress: string) => {
-    if (!signer || !provider) return null;
+  // Function to disconnect wallet
+  const disconnectWallet = async () => {
+    if (!coinbaseWallet) return;
     
     try {
-      return new ethers.Contract(
-        contractAddress,
-        escrowABI.abi,
-        signer
-      );
-    } catch (error) {
-      console.error("Error creating contract instance:", error);
-      return null;
+      await coinbaseWallet.disconnect();
+      
+      // Reset state
+      setAddress(null);
+      setNetworkId(null);
+      setIsConnected(false);
+      
+      toast({
+        title: "Disconnected",
+        description: "Wallet disconnected successfully",
+      });
+    } catch (error: any) {
+      console.error("Error disconnecting wallet:", error);
+      toast({
+        title: "Disconnection Failed",
+        description: error.message || "Failed to disconnect wallet",
+        variant: "destructive",
+      });
+      throw error;
     }
   };
+
+  // Function to send transaction
+  const sendTransaction = async (to: string, amount: string) => {
+    if (!coinbaseWallet || !address) {
+      throw new Error("Wallet not connected");
+    }
+    
+    try {
+      // Convert amount to wei (this is simplified)
+      const amountInWei = BigInt(parseFloat(amount) * 1e18).toString();
+      
+      // Send transaction
+      const txHash = await coinbaseWallet.request({
+        method: "eth_sendTransaction",
+        params: [{
+          from: address,
+          to,
+          value: amountInWei,
+        }],
+      });
+      
+      toast({
+        title: "Transaction Sent",
+        description: `Transaction hash: ${txHash.substring(0, 10)}...`,
+      });
+      
+      return txHash;
+    } catch (error: any) {
+      console.error("Error sending transaction:", error);
+      toast({
+        title: "Transaction Failed",
+        description: error.message || "Failed to send transaction",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  // Function to sign message
+  const signMessage = async (message: string) => {
+    if (!coinbaseWallet || !address) {
+      throw new Error("Wallet not connected");
+    }
+    
+    try {
+      // Sign message
+      const signature = await coinbaseWallet.request({
+        method: "personal_sign",
+        params: [message, address],
+      });
+      
+      return signature;
+    } catch (error: any) {
+      console.error("Error signing message:", error);
+      toast({
+        title: "Signing Failed",
+        description: error.message || "Failed to sign message",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  // Get network name from ID
+  const networkName = networkId ? NETWORK_NAMES[networkId] || `Chain ${networkId}` : null;
 
   return (
     <Web3Context.Provider
       value={{
-        provider,
-        signer,
         isConnected,
         isConnecting,
+        address,
+        networkName,
         connectWallet,
         disconnectWallet,
-        getContract,
-        networkName,
-        chainId,
-        address,
+        sendTransaction,
+        signMessage,
       }}
     >
       {children}
@@ -264,7 +219,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   );
 }
 
-// Custom hook to use the Web3 context
+// Hook to use web3
 export function useWeb3() {
   const context = useContext(Web3Context);
   if (!context) {

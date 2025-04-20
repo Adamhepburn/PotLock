@@ -87,8 +87,8 @@ export default function WalletPage() {
               style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }} 
               onClick={() => {
                 toast({
-                  title: "Coming soon",
-                  description: "This feature will be available soon"
+                  title: "Add Funds",
+                  description: "The deposit feature is coming soon!"
                 });
               }}
             >
@@ -99,8 +99,8 @@ export default function WalletPage() {
               className="flex-1 neumorphic-button" 
               onClick={() => {
                 toast({
-                  title: "Coming soon",
-                  description: "This feature will be available soon"
+                  title: "Cash Out",
+                  description: "The withdrawal feature is coming soon!"
                 });
               }}
             >

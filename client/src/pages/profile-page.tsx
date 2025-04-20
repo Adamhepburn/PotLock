@@ -274,7 +274,7 @@ export default function ProfilePage() {
           <Button 
             className="h-14 shadow-lg"
             style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }}
-            onClick={() => navigate("/deposit")}
+            onClick={() => navigate("/wallet")}
           >
             <CreditCard className="h-5 w-5 mr-2" />
             Add Funds

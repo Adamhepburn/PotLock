@@ -27,7 +27,8 @@ import {
   Heart,
   UserPlus,
   Star,
-  Home
+  Home,
+  Check
 } from "lucide-react";
 
 export default function ProfilePage() {

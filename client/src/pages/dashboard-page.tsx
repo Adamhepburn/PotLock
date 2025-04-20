@@ -233,8 +233,7 @@ export default function DashboardPage() {
         
         {/* Create game button */}
         <Button 
-          className="w-full mb-6 font-medium neumorphic-button"
-          style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }}
+          className="w-full mb-6 font-medium primary-action-button"
           onClick={() => navigate("/games")}
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -351,7 +350,7 @@ export default function DashboardPage() {
                     ) : (
                       <Button 
                         size="sm"
-                        className="neumorphic-button bg-primary text-white"
+                        className="primary-action-button"
                         onClick={() => handleReserveSpot(game.id, game.buyInAmount.toString())}
                       >
                         <PlusCircle className="h-4 w-4 mr-1" />
@@ -378,8 +377,7 @@ export default function DashboardPage() {
                   : "No upcoming games found."}
               </p>
               <Button 
-                className="neumorphic-button"
-                style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }}
+                className="primary-action-button"
                 onClick={() => navigate("/games")}
               >
                 <Plus className="h-4 w-4 mr-2" />

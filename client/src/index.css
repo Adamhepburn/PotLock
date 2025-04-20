@@ -34,6 +34,7 @@
     background: linear-gradient(145deg, #f5faff, #e9eef3);
     border-radius: 12px;
     transition: all 0.2s ease;
+    font-weight: 500;
   }
   
   .neumorphic-button:hover {
@@ -45,6 +46,27 @@
   .neumorphic-button:active {
     box-shadow: inset 4px 4px 8px rgba(163, 177, 198, 0.35),
                 inset -4px -4px 8px rgba(255, 255, 255, 0.5);
+    transform: translateY(0);
+  }
+  
+  .primary-action-button {
+    background-color: hsl(212, 92%, 45%);
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 4px 6px rgba(24, 92, 175, 0.4);
+    transition: all 0.2s ease;
+    border: none;
+  }
+  
+  .primary-action-button:hover {
+    background-color: hsl(212, 92%, 40%);
+    box-shadow: 0 6px 10px rgba(24, 92, 175, 0.5);
+    transform: translateY(-2px);
+  }
+  
+  .primary-action-button:active {
+    background-color: hsl(212, 92%, 35%);
+    box-shadow: 0 2px 4px rgba(24, 92, 175, 0.4);
     transform: translateY(0);
   }
   

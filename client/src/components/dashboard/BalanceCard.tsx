@@ -60,8 +60,7 @@ export default function BalanceCard({
           
           <div className="flex gap-2">
             <Button 
-              className="flex-1 neumorphic-button"
-              style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }}
+              className="flex-1 primary-action-button"
               size="sm"
               onClick={() => setDepositModalOpen(true)}
             >

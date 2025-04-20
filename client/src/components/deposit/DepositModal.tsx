@@ -216,7 +216,7 @@ export default function DepositModal({
       onOpenChange(isOpen);
       if (!isOpen) resetForm();
     }}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px]" style={{ backgroundColor: "#f0f5fa" }}>
         <DialogHeader>
           <DialogTitle>Add Funds</DialogTitle>
           <DialogDescription>
@@ -341,7 +341,7 @@ export default function DepositModal({
               </div>
             </div>
             
-            <div className="p-4 border rounded-md bg-gray-50">
+            <div className="p-4 border rounded-md neumorphic-inset">
               <h4 className="text-sm font-medium mb-2">Link your bank account</h4>
               <p className="text-xs text-muted-foreground mb-4">
                 Securely connect your bank account to deposit funds directly.
@@ -361,7 +361,7 @@ export default function DepositModal({
           <DialogFooter className="mt-4">
             <Button
               type="submit"
-              className="w-full"
+              className="w-full primary-action-button"
               onClick={handleSubmit}
               disabled={isProcessing}
             >

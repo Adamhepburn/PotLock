@@ -220,11 +220,11 @@ export default function WithdrawModal({
       onOpenChange(isOpen);
       if (!isOpen) resetForm();
     }}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px]" style={{ backgroundColor: "#f0f5fa" }}>
         <DialogHeader>
-          <DialogTitle>Withdraw Funds</DialogTitle>
+          <DialogTitle>Cash Out</DialogTitle>
           <DialogDescription>
-            Withdraw money to your bank account or crypto wallet.
+            Withdraw money to your bank account or Coinbase wallet.
           </DialogDescription>
         </DialogHeader>
         
@@ -361,7 +361,7 @@ export default function WithdrawModal({
                   </div>
                 </div>
                 
-                <div className="p-4 border rounded-md bg-gray-50">
+                <div className="p-4 border rounded-md neumorphic-inset">
                   <h4 className="text-sm font-medium mb-2">Connected Wallet</h4>
                   {isConnected ? (
                     <div className="text-sm space-y-1">
@@ -382,10 +382,11 @@ export default function WithdrawModal({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="mt-2 w-full"
+                      className="mt-2 w-full neumorphic-button"
                       onClick={connectWallet}
                     >
-                      Connect Wallet
+                      <Wallet className="h-4 w-4 mr-2" />
+                      Connect Coinbase
                     </Button>
                   )}
                 </div>
@@ -403,7 +404,7 @@ export default function WithdrawModal({
           <DialogFooter className="mt-4">
             <Button
               type="submit"
-              className="w-full"
+              className="w-full primary-action-button"
               onClick={activeTab === "bank" ? handleBankWithdraw : handleCryptoWithdraw}
               disabled={isProcessing || (activeTab === "crypto" && !isConnected)}
             >

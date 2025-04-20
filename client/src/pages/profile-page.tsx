@@ -28,7 +28,8 @@ import {
   BadgeCheck,
   Heart,
   UserPlus,
-  Star
+  Star,
+  Home
 } from "lucide-react";
 
 export default function ProfilePage() {
@@ -648,6 +649,10 @@ export default function ProfilePage() {
 
       {/* Bottom Navigation Bar */}
       <div className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-gray-200 flex items-center justify-around px-6">
+        <Button variant="ghost" className="flex flex-col items-center justify-center h-full" onClick={() => navigate("/dashboard")}>
+          <Home className="h-5 w-5" />
+          <span className="text-xs mt-1">Dashboard</span>
+        </Button>
         <Button variant="ghost" className="flex flex-col items-center justify-center h-full" onClick={() => navigate("/games")}>
           <Users className="h-5 w-5" />
           <span className="text-xs mt-1">Games</span>

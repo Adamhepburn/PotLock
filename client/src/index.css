@@ -8,6 +8,55 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased text-foreground;
+    background-color: #f0f5fa;
+  }
+}
+
+@layer components {
+  .neumorphic {
+    box-shadow: 5px 5px 10px rgba(163, 177, 198, 0.35),
+                -5px -5px 10px rgba(255, 255, 255, 0.5);
+    background: linear-gradient(145deg, #f5faff, #e9eef3);
+    border-radius: 16px;
+  }
+  
+  .neumorphic-inset {
+    box-shadow: inset 5px 5px 10px rgba(163, 177, 198, 0.35),
+                inset -5px -5px 10px rgba(255, 255, 255, 0.5);
+    background: linear-gradient(145deg, #e9eef3, #f5faff);
+    border-radius: 16px;
+  }
+  
+  .neumorphic-button {
+    box-shadow: 4px 4px 8px rgba(163, 177, 198, 0.35),
+                -4px -4px 8px rgba(255, 255, 255, 0.5);
+    background: linear-gradient(145deg, #f5faff, #e9eef3);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+  }
+  
+  .neumorphic-button:hover {
+    box-shadow: 6px 6px 12px rgba(163, 177, 198, 0.35),
+                -6px -6px 12px rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+  }
+  
+  .neumorphic-button:active {
+    box-shadow: inset 4px 4px 8px rgba(163, 177, 198, 0.35),
+                inset -4px -4px 8px rgba(255, 255, 255, 0.5);
+    transform: translateY(0);
+  }
+  
+  .neumorphic-card {
+    box-shadow: 7px 7px 14px rgba(163, 177, 198, 0.25),
+                -7px -7px 14px rgba(255, 255, 255, 0.7);
+    background: linear-gradient(145deg, #f5faff, #e9eef3);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+  }
+  
+  .pastel-gradient {
+    background: linear-gradient(135deg, #a6d1ff, #7fb9ff);
   }
 }

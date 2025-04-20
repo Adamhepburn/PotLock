@@ -118,7 +118,7 @@ export default function TopNavigation() {
                   <CreditCard className="mr-2 h-4 w-4" />
                   <span>Add Funds</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setLocation('/friends')}>
+                <DropdownMenuItem onClick={() => setLocation('/profile')}>
                   <Users className="mr-2 h-4 w-4" />
                   <span>Friends</span>
                 </DropdownMenuItem>

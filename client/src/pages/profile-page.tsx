@@ -282,7 +282,12 @@ export default function ProfilePage() {
           <Button 
             className="h-14 shadow-lg"
             style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }}
-            onClick={() => navigate("/cashout/1")}
+            onClick={() => {
+              toast({
+                title: "Cash Out",
+                description: "The withdrawal feature is coming soon!"
+              });
+            }}
           >
             <DollarSign className="h-5 w-5 mr-2" />
             Cash Out

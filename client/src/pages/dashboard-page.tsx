@@ -184,11 +184,10 @@ export default function DashboardPage() {
       <div className="px-4 py-2">
         {/* Balance card only - Removed wallet connection */}
         <div className="mb-6">
-          {/* Balance Card with Deposit/Withdraw/Stake */}
+          {/* Simplified Balance Card without staking UI */}
           <BalanceCard 
             totalBalance={100} 
-            stakedBalance={50} 
-            availableBalance={50}
+            availableBalance={100}
           />
         </div>
       

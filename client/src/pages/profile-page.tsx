@@ -279,7 +279,7 @@ export default function ProfilePage() {
         <div className="grid grid-cols-2 gap-4 mb-8">
           <Button 
             className="h-14 shadow-lg"
-            style={{ backgroundColor: "#1e40af", color: "white" }}
+            style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }}
             onClick={() => navigate("/deposit")}
           >
             <CreditCard className="h-5 w-5 mr-2" />
@@ -287,7 +287,7 @@ export default function ProfilePage() {
           </Button>
           <Button 
             className="h-14 shadow-lg"
-            style={{ backgroundColor: "#1e40af", color: "white" }}
+            style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }}
             onClick={() => navigate("/cashout/1")}
           >
             <DollarSign className="h-5 w-5 mr-2" />

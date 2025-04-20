@@ -59,4 +59,9 @@
   .pastel-gradient {
     background: linear-gradient(135deg, #a6d1ff, #7fb9ff);
   }
+  
+  .dark-blue-button {
+    background-color: #1e40af !important; /* blue-700 */
+    color: white !important;
+  }
 }

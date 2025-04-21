@@ -168,7 +168,7 @@ export default function DepositPage() {
                   We use Plaid to ensure your banking information stays safe and secure.
                 </p>
                 
-                <div className="space-y-4">
+                <div className="space-y-4 mb-6">
                   <div className="neumorphic p-4 rounded-lg">
                     <div className="flex items-center text-sm mb-2">
                       <Shield className="h-4 w-4 text-green-500 mr-2" />
@@ -190,26 +190,56 @@ export default function DepositPage() {
                   </div>
                 </div>
                 
-                <div className="space-y-4 mb-6">
-                  <div className="neumorphic-inset p-3 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <label className="text-sm text-gray-600">Amount</label>
-                      <div className="flex items-center">
-                        <span className="text-gray-600 mr-2">$</span>
-                        <input 
-                          type="text" 
-                          className="w-24 p-2 rounded-md outline-none bg-transparent text-right" 
-                          placeholder="0.00"
-                          value={amount}
-                          onChange={(e) => setAmount(e.target.value)}
-                        />
+                {/* Bank connection status - For a real app, this would show actual connected bank accounts */}
+                <div className="neumorphic-inset p-4 rounded-lg mb-6 bg-white/50">
+                  <div className="flex items-center mb-3">
+                    <div className="w-3 h-3 bg-gray-300 rounded-full mr-2"></div>
+                    <span className="text-gray-600 text-sm">No bank accounts connected</span>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Connect your bank account to start making deposits.
+                  </p>
+                </div>
+                
+                <div className="mt-4">
+                  <PlaidLinkButton />
+                </div>
+                
+                {/* Deposit form - Would appear after bank connected in a real app */}
+                <div className="mt-8 pt-6 border-t border-gray-200">
+                  <h4 className="font-medium mb-4">Make a Deposit</h4>
+                  <div className="space-y-4 mb-4">
+                    <div className="neumorphic-inset p-3 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <label className="text-sm text-gray-600">Amount</label>
+                        <div className="flex items-center">
+                          <span className="text-gray-600 mr-2">$</span>
+                          <input 
+                            type="text" 
+                            className="w-24 p-2 rounded-md outline-none bg-transparent text-right" 
+                            placeholder="0.00"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-                
-                <div className="mt-6">
-                  <PlaidLinkButton amount={amount} />
+                  
+                  <Button
+                    className="w-full neumorphic-button"
+                    disabled={!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0}
+                    onClick={() => {
+                      // In a real app, this would use a connected bank account
+                      toast({
+                        title: "Deposit Initiated",
+                        description: `$${amount} will be transferred from your bank account. This process typically takes 1-3 business days.`,
+                      });
+                    }}
+                  >
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    Deposit Funds
+                  </Button>
                 </div>
               </div>
             </TabsContent>

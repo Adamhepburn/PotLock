@@ -19,6 +19,7 @@ import { nanoid } from "nanoid";
 import * as plaidService from './plaid.js';
 import * as coinbaseService from './coinbase.js';
 import * as potlockContract from './potlock-contract.js';
+import * as aaveYield from './aave-yield.js';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes (/api/register, /api/login, /api/user, /api/logout)
@@ -1162,6 +1163,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error withdrawing from contract:", error);
       res.status(500).json({ message: "Failed to withdraw from contract" });
+    }
+  });
+
+  // Aave Yield Routes
+  
+  // Get current APY information
+  app.get("/api/yield/apy", async (req, res, next) => {
+    try {
+      const currentApy = await aaveYield.getCurrentApy();
+      res.json({ apy: currentApy });
+    } catch (error) {
+      console.error("Error getting APY:", error);
+      
+      // Return a fallback APY in development mode
+      if (process.env.NODE_ENV === 'development') {
+        res.json({ apy: 3.75 });
+      } else {
+        res.status(500).json({ message: "Failed to get current APY" });
+      }
+    }
+  });
+  
+  // Get user's interest earned
+  app.get("/api/yield/interest", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // In a production app, these values would come from the database
+      // based on the user's actual balance and the total pool
+      const userBalance = 1000; // Example user balance in USDC
+      const totalPoolSize = 100000; // Example total pool size in USDC
+      
+      const interestInfo = await aaveYield.calculateUserInterest(userBalance, totalPoolSize);
+      res.json(interestInfo);
+    } catch (error) {
+      console.error("Error calculating interest:", error);
+      res.status(500).json({ message: "Failed to calculate interest" });
+    }
+  });
+  
+  // Admin route to manage idle funds (would require admin authentication in production)
+  app.post("/api/admin/yield/manage", async (req, res, next) => {
+    try {
+      // Note: In production, this would check for admin privileges
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { totalIdleFunds, reserveAmount } = req.body;
+      
+      if (!totalIdleFunds) {
+        return res.status(400).json({ message: "Total idle funds amount is required" });
+      }
+      
+      const result = await aaveYield.manageIdleFunds(
+        parseFloat(totalIdleFunds),
+        reserveAmount ? parseFloat(reserveAmount) : undefined
+      );
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error managing idle funds:", error);
+      res.status(500).json({ message: "Failed to manage idle funds" });
+    }
+  });
+  
+  // Get total deposited and current value in Aave
+  app.get("/api/admin/yield/deposits", async (req, res, next) => {
+    try {
+      // Note: In production, this would check for admin privileges
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const depositInfo = await aaveYield.getTotalDeposited();
+      res.json(depositInfo);
+    } catch (error) {
+      console.error("Error getting deposit info:", error);
+      res.status(500).json({ message: "Failed to get deposit information" });
     }
   });
 

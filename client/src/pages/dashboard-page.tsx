@@ -58,6 +58,16 @@ export default function DashboardPage() {
   const [filter, setFilter] = useState<string>("all"); // all, friends, upcoming
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isError, setIsError] = useState<boolean>(false);
+  const [expandedGameIds, setExpandedGameIds] = useState<number[]>([]);
+  
+  // Toggle expanded state for a game
+  const toggleGameExpanded = (gameId: number) => {
+    if (expandedGameIds.includes(gameId)) {
+      setExpandedGameIds(expandedGameIds.filter(id => id !== gameId));
+    } else {
+      setExpandedGameIds([...expandedGameIds, gameId]);
+    }
+  };
   
   // Mock games data for development
   const [gamesData, setGamesData] = useState<ExtendedGame[]>([
@@ -260,15 +270,20 @@ export default function DashboardPage() {
         ) : filteredGames && filteredGames.length > 0 ? (
           <div className="space-y-6">
             {filteredGames.map(game => {
-              const [isExpanded, setIsExpanded] = useState(false);
               const gameDate = game.gameDate ? new Date(game.gameDate) : null;
               
               return (
                 <div key={game.id} className="neumorphic-card overflow-hidden">
                   {/* Simplified Card View */}
                   <div className="p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="text-lg font-bold text-gray-800">{game.name}</h3>
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-800">{game.name}</h3>
+                        <div className="flex items-center gap-1 text-gray-600 text-xs mt-0.5">
+                          <User className="h-3 w-3" /> 
+                          {game.creator.displayName || game.creator.username}
+                        </div>
+                      </div>
                       <Badge variant={game.isPrivate ? "outline" : "secondary"} className={game.isPrivate ? "bg-gray-100" : "bg-primary/10 text-primary border-0"}>
                         {game.isPrivate ? "Private" : "Open"}
                       </Badge>
@@ -309,10 +324,10 @@ export default function DashboardPage() {
                         variant="ghost" 
                         size="sm"
                         className="text-primary hover:text-primary/80"
-                        onClick={() => setIsExpanded(!isExpanded)}
+                        onClick={() => toggleGameExpanded(game.id)}
                       >
-                        {isExpanded ? "Show Less" : "Show More"}
-                        <ChevronDown className={`h-4 w-4 ml-1 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                        {expandedGameIds.includes(game.id) ? "Show Less" : "Show More"}
+                        <ChevronDown className={`h-4 w-4 ml-1 transition-transform ${expandedGameIds.includes(game.id) ? "rotate-180" : ""}`} />
                       </Button>
                       
                       {game.hasReserved ? (
@@ -338,14 +353,9 @@ export default function DashboardPage() {
                   </div>
                   
                   {/* Expanded Details */}
-                  {isExpanded && (
+                  {expandedGameIds.includes(game.id) && (
                     <div className="border-t border-gray-100 p-4 bg-gray-50">
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-1 text-gray-600 text-sm">
-                          <User className="h-3.5 w-3.5" /> 
-                          Hosted by {game.creator.displayName || game.creator.username}
-                        </div>
-                        
+                      <div className="space-y-3">                        
                         <div className="flex items-start">
                           <MapPin className="h-4 w-4 text-primary mt-0.5 mr-2" />
                           <div className="text-sm">

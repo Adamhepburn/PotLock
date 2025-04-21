@@ -1,6 +1,6 @@
 // Plaid API Integration for PotLock
-const { Configuration, PlaidApi, PlaidEnvironments } = require('plaid');
-const { buyUSDC, transferToPotLock } = require('./coinbase');
+import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
+import { buyUSDC, transferToPotLock } from './coinbase.js';
 
 // Using environment variables for Plaid credentials
 const PLAID_CLIENT_ID = process.env.PLAID_CLIENT_ID;
@@ -207,7 +207,7 @@ async function initiateTransfer(accessToken, accountId, amount, userAddress) {
 }
 
 // Export functions for use in routes
-module.exports = {
+export {
   createLinkToken,
   exchangePublicToken,
   getBankAccounts,

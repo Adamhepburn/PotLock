@@ -1,14 +1,23 @@
 // Coinbase API Integration for PotLock
-const fetch = require('node-fetch');
-const crypto = require('crypto');
+import fetch from 'node-fetch';
+import crypto from 'crypto';
 
-// Note: In a production environment, these should be securely stored environment variables
+// Use environment variables for Coinbase credentials
 const COINBASE_API_KEY = process.env.COINBASE_API_KEY;
 const COINBASE_API_SECRET = process.env.COINBASE_API_SECRET;
+const COINBASE_PASSPHRASE = process.env.COINBASE_PASSPHRASE;
 const ADMIN_WALLET_PRIVATE_KEY = process.env.ADMIN_WALLET_PRIVATE_KEY;
 
-// Coinbase API base URL
+// Indicate whether to use Coinbase Pro/Exchange API or regular Coinbase API
+const USE_EXCHANGE_API = process.env.USE_EXCHANGE_API === 'true';
+
+// API base URLs
 const COINBASE_API_URL = 'https://api.coinbase.com';
+const COINBASE_EXCHANGE_API_URL = 'https://api.exchange.coinbase.com';
+
+// Crypto settings
+const DEFAULT_CRYPTO = 'USDC';
+const DEFAULT_CURRENCY = 'USD';
 
 /**
  * Generate headers required for Coinbase API authentication
@@ -157,10 +166,193 @@ async function transferToPotLock(amount, userAddress) {
   };
 }
 
+/**
+ * Generate a new cryptocurrency deposit address for a user
+ * @param {string} userId - User ID to associate with the address
+ * @param {string} currency - Currency code (e.g., 'USDC')
+ * @returns {Promise<Object>} Deposit address information
+ */
+async function generateDepositAddress(userId, currency = DEFAULT_CRYPTO) {
+  try {
+    // Get the account ID for the specified currency
+    const accountId = await getCryptoAccountId(currency);
+    
+    if (!accountId) {
+      throw new Error(`No account found for ${currency}`);
+    }
+    
+    const endpoint = `/v2/accounts/${accountId}/addresses`;
+    const body = {
+      name: `PotLock User: ${userId}`
+    };
+    
+    const headers = generateCoinbaseHeaders('POST', endpoint, body);
+    const response = await fetch(`${COINBASE_API_URL}${endpoint}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body)
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Failed to generate deposit address: ${JSON.stringify(errorData)}`);
+    }
+    
+    const data = await response.json();
+    return {
+      address: data.data.address,
+      addressUrl: data.data.address_uri,
+      currency,
+      userId
+    };
+  } catch (error) {
+    console.error('Error generating deposit address:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get cryptocurrency account ID by currency code
+ * @param {string} currency - Currency code (e.g., 'USDC')
+ * @returns {Promise<string|null>} Account ID if found, null otherwise
+ */
+async function getCryptoAccountId(currency) {
+  try {
+    const endpoint = '/v2/accounts';
+    const headers = generateCoinbaseHeaders('GET', endpoint);
+    const response = await fetch(`${COINBASE_API_URL}${endpoint}`, {
+      method: 'GET',
+      headers
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Failed to fetch accounts: ${JSON.stringify(errorData)}`);
+    }
+    
+    const data = await response.json();
+    const account = data.data.find(acc => acc.currency.code === currency);
+    
+    return account ? account.id : null;
+  } catch (error) {
+    console.error('Error getting crypto account ID:', error);
+    throw error;
+  }
+}
+
+/**
+ * Send cryptocurrency to an external address (withdrawal)
+ * @param {string} address - Destination cryptocurrency address
+ * @param {number} amount - Amount to send
+ * @param {string} currency - Currency code (e.g., 'USDC')
+ * @param {string} description - Transaction description/memo
+ * @returns {Promise<Object>} Transaction details
+ */
+async function sendCrypto(address, amount, currency = DEFAULT_CRYPTO, description = 'PotLock Withdrawal') {
+  try {
+    // Get the account ID for the specified currency
+    const accountId = await getCryptoAccountId(currency);
+    
+    if (!accountId) {
+      throw new Error(`No account found for ${currency}`);
+    }
+    
+    const endpoint = `/v2/accounts/${accountId}/transactions`;
+    const body = {
+      type: 'send',
+      to: address,
+      amount,
+      currency,
+      description
+    };
+    
+    const headers = generateCoinbaseHeaders('POST', endpoint, body);
+    const response = await fetch(`${COINBASE_API_URL}${endpoint}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body)
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Failed to send cryptocurrency: ${JSON.stringify(errorData)}`);
+    }
+    
+    const data = await response.json();
+    return {
+      id: data.data.id,
+      status: data.data.status,
+      amount: data.data.amount.amount,
+      currency: data.data.amount.currency,
+      toAddress: address,
+      network: data.data.network,
+      description
+    };
+  } catch (error) {
+    console.error('Error sending cryptocurrency:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get transaction by ID
+ * @param {string} transactionId - Transaction ID
+ * @returns {Promise<Object>} Transaction details
+ */
+async function getTransaction(transactionId) {
+  try {
+    const endpoint = `/v2/accounts/transactions/${transactionId}`;
+    const headers = generateCoinbaseHeaders('GET', endpoint);
+    const response = await fetch(`${COINBASE_API_URL}${endpoint}`, {
+      method: 'GET',
+      headers
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Failed to fetch transaction: ${JSON.stringify(errorData)}`);
+    }
+    
+    const data = await response.json();
+    return data.data;
+  } catch (error) {
+    console.error('Error getting transaction:', error);
+    throw error;
+  }
+}
+
+/**
+ * Check for incoming deposits to a specific address
+ * @param {string} address - Cryptocurrency address to check
+ * @returns {Promise<Array>} List of deposits
+ */
+async function checkDeposits(address) {
+  try {
+    // In development, we'll mock this functionality
+    // In production, you'd use Coinbase webhooks or poll the transactions endpoint
+    if (process.env.NODE_ENV !== 'production') {
+      return [];
+    }
+    
+    // This is just a placeholder - in production, you'd implement this
+    // based on Coinbase's API for checking transactions
+    
+    return [];
+  } catch (error) {
+    console.error('Error checking deposits:', error);
+    throw error;
+  }
+}
+
 // Export functions for use in routes
-module.exports = {
+export {
   buyUSDC,
   sellUSDC,
   getPaymentMethods,
-  transferToPotLock
+  transferToPotLock,
+  generateDepositAddress,
+  getCryptoAccountId,
+  sendCrypto,
+  getTransaction,
+  checkDeposits
 };

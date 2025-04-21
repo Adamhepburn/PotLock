@@ -15,13 +15,10 @@ import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { nanoid } from "nanoid";
 
-// Import Plaid API functions
-const { 
-  createLinkToken, 
-  exchangePublicToken, 
-  getBankAccounts, 
-  initiateTransfer 
-} = require('./plaid');
+// Import service modules
+import * as plaidService from './plaid.js';
+import * as coinbaseService from './coinbase.js';
+import * as potlockContract from './potlock-contract.js';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes (/api/register, /api/login, /api/user, /api/logout)
@@ -882,7 +879,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Not authenticated" });
       }
       
-      const plaidService = require('./plaid');
       const linkToken = await plaidService.createLinkToken(req.user.id.toString());
       res.json(linkToken);
     } catch (error) {
@@ -902,7 +898,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Public token is required" });
       }
       
-      const plaidService = require('./plaid');
       const exchangeResponse = await plaidService.exchangePublicToken(publicToken);
       
       // In a real app, you would store this access token with the user in your database
@@ -928,7 +923,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Access token is required" });
       }
       
-      const plaidService = require('./plaid');
       const authResponse = await plaidService.getBankAccounts(accessToken);
       res.json(authResponse);
     } catch (error) {

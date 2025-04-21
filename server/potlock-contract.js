@@ -1,5 +1,5 @@
 // PotLock Smart Contract Interface
-const { ethers } = require('ethers');
+import { ethers } from 'ethers';
 
 // Note: In a production environment, these should be securely stored environment variables
 const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY;
@@ -124,7 +124,7 @@ async function getUserBalances(userAddress) {
 }
 
 // Export functions for use in routes
-module.exports = {
+export {
   depositForUser,
   withdrawForUser,
   getUserBalances

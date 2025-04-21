@@ -949,7 +949,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Amount must be a positive number" });
       }
       
-      const plaidService = require('./plaid');
       const transferResponse = await plaidService.initiateTransfer(
         accessToken, 
         accountId, 
@@ -982,8 +981,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(amount) || amount <= 0) {
         return res.status(400).json({ message: "Amount must be a positive number" });
       }
-      
-      const coinbaseService = require('./coinbase');
       
       // Buy USDC using Coinbase API
       const buyResponse = await coinbaseService.buyUSDC(amount, paymentMethod);
@@ -1023,7 +1020,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Amount must be a positive number" });
       }
       
-      const coinbaseService = require('./coinbase');
       // Sell USDC using Coinbase API
       const sellResponse = await coinbaseService.sellUSDC(amount, paymentMethod);
       
@@ -1043,7 +1039,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Not authenticated" });
       }
       
-      const coinbaseService = require('./coinbase');
       const paymentMethods = await coinbaseService.getPaymentMethods();
       res.json(paymentMethods);
     } catch (error) {
@@ -1063,7 +1058,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Wallet address is not configured for your account" });
       }
       
-      const potlockContract = require('./potlock-contract');
       const balances = await potlockContract.getUserBalances(req.user.walletAddress);
       res.json(balances);
     } catch (error) {
@@ -1092,7 +1086,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Wallet address is not configured for your account" });
       }
       
-      const potlockContract = require('./potlock-contract');
       const depositResponse = await potlockContract.depositForUser(req.user.walletAddress, amount);
       res.json(depositResponse);
     } catch (error) {
@@ -1123,7 +1116,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Wallet address is not configured for your account" });
       }
       
-      const potlockContract = require('./potlock-contract');
       const withdrawResponse = await potlockContract.withdrawForUser(
         req.user.walletAddress, 
         amount, 

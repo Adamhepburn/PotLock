@@ -1,5 +1,5 @@
 // PotLock Smart Contract Interface
-import { ethers } from 'ethers';
+import * as ethers from 'ethers';
 
 // Note: In a production environment, these should be securely stored environment variables
 const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY;
@@ -23,19 +23,33 @@ const POTLOCK_CONTRACT_ABI = [
 ];
 
 // Initialize provider and contract
-const provider = new ethers.providers.JsonRpcProvider(
+// ESM version uses different import pattern
+const provider = new ethers.JsonRpcProvider(
   process.env.NODE_ENV === 'production' ? BASE_MAINNET_RPC : BASE_SEPOLIA_RPC
 );
 
-// Create a wallet using admin private key
-const wallet = new ethers.Wallet(ADMIN_WALLET_PRIVATE_KEY, provider);
+// Set up wallet and contract conditionally to avoid errors when private key isn't available
+let wallet;
+let potlockContract;
 
-// Connect to the PotLock contract
-const potlockContract = new ethers.Contract(
-  POTLOCK_CONTRACT_ADDRESS,
-  POTLOCK_CONTRACT_ABI,
-  wallet
-);
+// Only attempt to create the wallet and contract if we have the necessary credentials
+if (ADMIN_WALLET_PRIVATE_KEY) {
+  try {
+    // Create a wallet using admin private key
+    wallet = new ethers.Wallet(ADMIN_WALLET_PRIVATE_KEY, provider);
+    
+    // Connect to the PotLock contract
+    potlockContract = new ethers.Contract(
+      POTLOCK_CONTRACT_ADDRESS,
+      POTLOCK_CONTRACT_ABI,
+      wallet
+    );
+  } catch (error) {
+    console.warn("Failed to initialize wallet or contract:", error.message);
+  }
+} else {
+  console.warn("ADMIN_WALLET_PRIVATE_KEY is not provided. Smart contract functionality is disabled.");
+}
 
 /**
  * Deposit USDC into the PotLock contract on behalf of a user
@@ -45,8 +59,13 @@ const potlockContract = new ethers.Contract(
  */
 async function depositForUser(userAddress, amount) {
   try {
+    // Check if contract is available before proceeding
+    if (!potlockContract) {
+      throw new Error("Smart contract is not initialized. Missing ADMIN_WALLET_PRIVATE_KEY.");
+    }
+    
     // Convert amount to Wei (or the appropriate unit for your token)
-    const amountInWei = ethers.utils.parseUnits(amount.toString(), 6); // USDC has 6 decimals
+    const amountInWei = ethers.parseUnits(amount.toString(), 6); // USDC has 6 decimals
     
     // Call the deposit function on the contract
     const tx = await potlockContract.depositUSDC(amountInWei);
@@ -74,8 +93,13 @@ async function depositForUser(userAddress, amount) {
  */
 async function withdrawForUser(userAddress, amount, destinationAddress) {
   try {
+    // Check if contract is available before proceeding
+    if (!potlockContract) {
+      throw new Error("Smart contract is not initialized. Missing ADMIN_WALLET_PRIVATE_KEY.");
+    }
+    
     // Convert amount to Wei (or the appropriate unit for your token)
-    const amountInWei = ethers.utils.parseUnits(amount.toString(), 6); // USDC has 6 decimals
+    const amountInWei = ethers.parseUnits(amount.toString(), 6); // USDC has 6 decimals
     
     // Call the withdraw function on the contract
     const tx = await potlockContract.withdrawUSDC(amountInWei, destinationAddress);
@@ -113,9 +137,9 @@ async function getUserBalances(userAddress) {
     
     // Convert Wei values to USDC decimal format
     return {
-      totalBalance: ethers.utils.formatUnits(totalBalance, 6),
-      idleBalance: ethers.utils.formatUnits(idleBalance, 6),
-      betBalance: ethers.utils.formatUnits(betBalance, 6)
+      totalBalance: ethers.formatUnits(totalBalance, 6),
+      idleBalance: ethers.formatUnits(idleBalance, 6),
+      betBalance: ethers.formatUnits(betBalance, 6)
     };
   } catch (error) {
     console.error('Error getting user balances:', error);

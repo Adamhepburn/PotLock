@@ -114,14 +114,16 @@ export default function WalletPage() {
                 </div>
                 <div className="flex gap-2">
                   <Button 
-                    className="neumorphic-button" 
+                    className="shadow-lg"
+                    style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }}
                     onClick={() => navigate("/deposit")}
                   >
                     <ArrowDownRight className="h-4 w-4 mr-2" />
                     Add Funds
                   </Button>
                   <Button 
-                    className="neumorphic-button"
+                    className="shadow-lg"
+                    style={{ backgroundColor: "hsl(33, 80%, 63%)", color: "white" }}
                     onClick={() => navigate("/cash-out")}
                   >
                     <ArrowUpRight className="h-4 w-4 mr-2" />
@@ -178,8 +180,7 @@ export default function WalletPage() {
             <CardContent>
               <div className="space-y-2">
                 <Button 
-                  variant="outline" 
-                  className="w-full justify-start text-left h-auto py-3 neumorphic-button"
+                  className="w-full justify-start text-left h-auto py-3 bg-blue-50 hover:bg-blue-100 border border-blue-200"
                   onClick={() => navigate("/deposit")}
                 >
                   <div className="flex-shrink-0 mr-3 bg-blue-100 p-2 rounded-full">
@@ -192,8 +193,7 @@ export default function WalletPage() {
                 </Button>
                 
                 <Button 
-                  variant="outline" 
-                  className="w-full justify-start text-left h-auto py-3 neumorphic-button"
+                  className="w-full justify-start text-left h-auto py-3 bg-amber-50 hover:bg-amber-100 border border-amber-200"
                   onClick={() => navigate("/cash-out")}
                 >
                   <div className="flex-shrink-0 mr-3 bg-amber-100 p-2 rounded-full">
@@ -206,8 +206,7 @@ export default function WalletPage() {
                 </Button>
                 
                 <Button 
-                  variant="outline" 
-                  className="w-full justify-start text-left h-auto py-3 neumorphic-button"
+                  className="w-full justify-start text-left h-auto py-3 bg-green-50 hover:bg-green-100 border border-green-200"
                   onClick={() => navigate("/game-setup")}
                 >
                   <div className="flex-shrink-0 mr-3 bg-green-100 p-2 rounded-full">

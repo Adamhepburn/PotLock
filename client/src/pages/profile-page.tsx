@@ -535,10 +535,10 @@ export default function ProfilePage() {
                         Add New Friend
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
+                    <DialogContent className="sm:max-w-[425px] bg-[#f0f5fa] border-none shadow-md">
                       <DialogHeader>
-                        <DialogTitle>Add a new friend</DialogTitle>
-                        <DialogDescription>
+                        <DialogTitle className="text-gray-800">Add a new friend</DialogTitle>
+                        <DialogDescription className="text-gray-600">
                           Search for other players by their username.
                         </DialogDescription>
                       </DialogHeader>
@@ -556,7 +556,7 @@ export default function ProfilePage() {
                                 searchUsers(e.target.value);
                               }}
                               placeholder="Search by username"
-                              className="w-full"
+                              className="w-full neumorphic-inset bg-[#f0f5fa] border-none focus-visible:ring-primary/30"
                             />
                           </div>
                         </div>
@@ -570,7 +570,7 @@ export default function ProfilePage() {
                                 {searchResults.map((user) => (
                                   <div 
                                     key={user.id} 
-                                    className="flex items-center justify-between p-2 hover:bg-gray-50 rounded"
+                                    className="flex items-center justify-between p-2 hover:bg-white/60 transition-colors duration-200 rounded"
                                   >
                                     <div className="flex items-center">
                                       <Avatar className="h-8 w-8 mr-2">
@@ -611,8 +611,11 @@ export default function ProfilePage() {
                           </div>
                         )}
                       </div>
-                      <DialogFooter>
-                        <Button type="submit" className="primary-action-button">
+                      <DialogFooter className="sm:justify-center sm:py-2">
+                        <Button 
+                          type="button" 
+                          className="neumorphic-button bg-gradient-to-r from-primary/90 to-primary text-white hover:from-primary hover:to-primary/90"
+                        >
                           Done
                         </Button>
                       </DialogFooter>

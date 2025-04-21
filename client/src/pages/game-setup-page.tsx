@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+// Mock devMode since it doesn't exist in useAuth yet
+const mockDevMode = true;
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -73,7 +75,8 @@ export default function GameSetupPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user, devMode } = useAuth();
+  const { user } = useAuth();
+  const devMode = mockDevMode; // Use the mock development mode for now
   
   // Game creation state
   const [createStep, setCreateStep] = useState<number>(1);

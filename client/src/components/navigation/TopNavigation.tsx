@@ -48,8 +48,8 @@ export default function TopNavigation() {
     },
     { 
       id: 3, 
-      title: "Staking Rewards", 
-      message: "You earned $1.25 in staking rewards", 
+      title: "Interest Earned", 
+      message: "You earned $1.25 in interest on your deposits", 
       time: "Yesterday",
       read: true
     }

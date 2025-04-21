@@ -13,33 +13,45 @@ interface PlaidLinkButtonProps {
 
 export default function PlaidLinkButton({ amount, onSuccess }: PlaidLinkButtonProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, devMode } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [linkToken, setLinkToken] = useState<string | null>(null);
 
   // Handle the success callback from Plaid Link
   const handleSuccess = useCallback(async (publicToken: string, metadata: any) => {
     try {
-      // Exchange the public token for an access token
-      const exchangeResponse = await apiRequest("POST", "/api/plaid/exchange", {
-        publicToken
-      });
-      
-      if (!exchangeResponse.ok) {
-        throw new Error("Failed to exchange public token");
-      }
-      
-      const data = await exchangeResponse.json();
-      
-      // Show success message
-      toast({
-        title: "Bank Connected Successfully",
-        description: "Your bank account has been successfully linked. You can now deposit funds anytime.",
-      });
-      
-      // Call onSuccess callback if provided
-      if (onSuccess) {
-        onSuccess(publicToken, metadata);
+      if (devMode) {
+        // In dev mode, simulate success without making API calls
+        toast({
+          title: "Bank Connected Successfully",
+          description: "Your bank account has been successfully linked. You can now deposit funds anytime.",
+        });
+        
+        if (onSuccess) {
+          onSuccess(publicToken, metadata);
+        }
+      } else {
+        // In real mode, exchange the public token for an access token
+        const exchangeResponse = await apiRequest("POST", "/api/plaid/exchange", {
+          publicToken
+        });
+        
+        if (!exchangeResponse.ok) {
+          throw new Error("Failed to exchange public token");
+        }
+        
+        const data = await exchangeResponse.json();
+        
+        // Show success message
+        toast({
+          title: "Bank Connected Successfully",
+          description: "Your bank account has been successfully linked. You can now deposit funds anytime.",
+        });
+        
+        // Call onSuccess callback if provided
+        if (onSuccess) {
+          onSuccess(publicToken, metadata);
+        }
       }
     } catch (error) {
       console.error("Error in Plaid flow:", error);
@@ -52,7 +64,7 @@ export default function PlaidLinkButton({ amount, onSuccess }: PlaidLinkButtonPr
       setIsLoading(false);
       setLinkToken(null);
     }
-  }, [toast, onSuccess]);
+  }, [toast, onSuccess, devMode]);
   
   // Handle the exit callback from Plaid Link
   const handleExit = useCallback(() => {
@@ -72,22 +84,35 @@ export default function PlaidLinkButton({ amount, onSuccess }: PlaidLinkButtonPr
     try {
       setIsLoading(true);
 
-      // Request a link token from the server
-      const response = await apiRequest("POST", "/api/plaid/link-token", {});
-      
-      if (!response.ok) {
-        throw new Error("Failed to get Plaid link token");
+      if (devMode) {
+        // In dev mode, simulate getting a link token
+        // For development, we'll use a fake token that won't actually work
+        // but will allow us to test the flow
+        setTimeout(() => {
+          // Simulate bank connection success
+          toast({
+            title: "Bank Connected Successfully",
+            description: "Your bank account has been successfully linked in development mode. You can now deposit funds anytime.",
+          });
+          setIsLoading(false);
+        }, 1500);
+      } else {
+        // In real mode, get link token from the server
+        const response = await apiRequest("POST", "/api/plaid/link-token", {});
+        
+        if (!response.ok) {
+          throw new Error("Failed to get Plaid link token");
+        }
+        
+        const data = await response.json();
+        
+        if (!data.link_token) {
+          throw new Error("No link token returned");
+        }
+        
+        // Set the link token - this will trigger the usePlaidLink hook
+        setLinkToken(data.link_token);
       }
-      
-      const data = await response.json();
-      
-      if (!data.link_token) {
-        throw new Error("No link token returned");
-      }
-      
-      // Set the link token - this will trigger the usePlaidLink hook
-      setLinkToken(data.link_token);
-      
     } catch (error) {
       console.error("Error connecting bank:", error);
       toast({
@@ -100,8 +125,8 @@ export default function PlaidLinkButton({ amount, onSuccess }: PlaidLinkButtonPr
   };
   
   // Effect to open Plaid Link when token is set and ready
-  if (linkToken && ready && !isLoading) {
-    // Open Plaid Link
+  if (linkToken && ready && !isLoading && !devMode) {
+    // Open Plaid Link (only in real mode)
     open();
   }
   
@@ -119,22 +144,34 @@ export default function PlaidLinkButton({ amount, onSuccess }: PlaidLinkButtonPr
     try {
       setIsLoading(true);
       
-      // Initiate transfer with the access token and account ID
-      const transferResponse = await apiRequest("POST", "/api/plaid/transfer", {
-        accessToken,
-        accountId,
-        amount: parseFloat(amount)
-      });
-      
-      if (!transferResponse.ok) {
-        throw new Error("Failed to initiate transfer");
+      if (devMode) {
+        // In dev mode, simulate a successful deposit
+        setTimeout(() => {
+          toast({
+            title: "Deposit Initiated",
+            description: `$${parseFloat(amount).toFixed(2)} will be transferred from your bank account. This process typically takes 1-3 business days.`,
+          });
+          setIsLoading(false);
+        }, 1000);
+      } else {
+        // In real mode, initiate transfer with the access token and account ID
+        const transferResponse = await apiRequest("POST", "/api/plaid/transfer", {
+          accessToken,
+          accountId,
+          amount: parseFloat(amount)
+        });
+        
+        if (!transferResponse.ok) {
+          throw new Error("Failed to initiate transfer");
+        }
+        
+        // Show success message
+        toast({
+          title: "Deposit Initiated",
+          description: `$${parseFloat(amount).toFixed(2)} will be transferred from your bank account. This process typically takes 1-3 business days.`,
+        });
+        setIsLoading(false);
       }
-      
-      // Show success message
-      toast({
-        title: "Deposit Initiated",
-        description: `$${parseFloat(amount).toFixed(2)} will be transferred from your bank account. This process typically takes 1-3 business days.`,
-      });
     } catch (error) {
       console.error("Error initiating deposit:", error);
       toast({
@@ -142,7 +179,6 @@ export default function PlaidLinkButton({ amount, onSuccess }: PlaidLinkButtonPr
         description: "There was a problem processing your deposit. Please try again.",
         variant: "destructive"
       });
-    } finally {
       setIsLoading(false);
     }
   };

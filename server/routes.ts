@@ -1046,6 +1046,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to get payment methods" });
     }
   });
+  
+  // Generate deposit address for user
+  app.get("/api/deposit/address", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const userId = req.user.id.toString();
+      
+      // Check if user already has a deposit address
+      // In a real application, this would be stored in the database
+      // For now, we'll generate a new one each time through Coinbase API
+      try {
+        const depositAddress = await coinbaseService.generateDepositAddress(userId, 'USDC');
+        res.json(depositAddress);
+      } catch (error) {
+        console.error("Error generating deposit address:", error);
+        
+        // Provide a mock address for development if Coinbase API is not available
+        if (process.env.NODE_ENV === 'development') {
+          res.json({
+            id: `mock-${userId}-${Date.now()}`,
+            address: '0x7e1E393CeE9d3Ef545fC7EE6B01b6dEDdA7AF58D', // Example Base USDC address (not real)
+            network: 'base',
+            uri: 'ethereum:0x7e1E393CeE9d3Ef545fC7EE6B01b6dEDdA7AF58D?token=USDC'
+          });
+        } else {
+          res.status(500).json({ message: "Failed to generate deposit address" });
+        }
+      }
+    } catch (error) {
+      console.error("Error handling deposit address request:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
 
   // PotLock Contract Routes
   app.get("/api/balances", async (req, res, next) => {

@@ -1,17 +1,85 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useWeb3 } from "@/hooks/use-web3";
-import { Wallet, Shield, TrendingUp, DollarSign, ArrowLeft } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, DollarSign, Wallet, Clock, Info, ArrowUpRight, ArrowDownRight, TrendingUp } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import { useQuery } from "@tanstack/react-query";
+import InterestDisplay from "@/components/account/InterestDisplay";
+import { formatDistanceToNow } from "date-fns";
 
 export default function WalletPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { isConnected, connectWallet, disconnectWallet, address, isConnecting } = useWeb3();
-  const [showInterestDetails, setShowInterestDetails] = useState(false);
-
+  const { user, devMode } = useAuth();
+  const [activeTab, setActiveTab] = useState("overview");
+  
+  // Fetch user balances
+  const { 
+    data: balances,
+    isLoading: isLoadingBalances
+  } = useQuery({
+    queryKey: ['/api/balances'],
+    queryFn: async () => {
+      // In dev mode, return mock data
+      if (devMode) {
+        return {
+          totalBalance: "1500.00",
+          idleBalance: "1000.00",
+          betBalance: "500.00"
+        };
+      }
+      const res = await fetch(`/api/balances?walletAddress=${user?.walletAddress}`);
+      if (!res.ok) throw new Error('Failed to fetch balances');
+      return await res.json();
+    },
+    enabled: !!user?.walletAddress
+  });
+  
+  // Mock transaction history for development
+  const mockTransactions = [
+    { 
+      id: 1, 
+      type: 'deposit', 
+      amount: 500.00, 
+      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago 
+      description: 'Bank deposit'
+    },
+    { 
+      id: 2, 
+      type: 'game', 
+      amount: -200.00, 
+      date: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+      description: 'Game buy-in: Poker Night'
+    },
+    { 
+      id: 3, 
+      type: 'game', 
+      amount: 350.00, 
+      date: new Date(Date.now() - 20 * 60 * 60 * 1000), // 20 hours ago
+      description: 'Game winnings: Poker Night'
+    },
+    { 
+      id: 4, 
+      type: 'interest', 
+      amount: 1.25, 
+      date: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
+      description: 'Interest earned'
+    }
+  ];
+  
+  const formatCurrency = (amount: string | number) => {
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(numAmount);
+  };
+  
   return (
     <div className="min-h-screen bg-app-background pb-20">
       <div className="bg-app-background border-b border-gray-200 p-6">
@@ -20,170 +88,304 @@ export default function WalletPage() {
             variant="ghost" 
             size="sm" 
             className="neumorphic-button mr-2"
-            onClick={() => navigate("/profile")}
+            onClick={() => navigate("/")}
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
-            Back
+            Dashboard
           </Button>
-          <h1 className="text-xl font-bold">Account Balance</h1>
+          <h1 className="text-xl font-bold">My Account</h1>
         </div>
       </div>
 
-      <div className="container max-w-md mx-auto px-4 py-6">
-        {/* Account Balance Card */}
-        <div className="neumorphic-card mb-6 p-6">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h2 className="text-lg font-semibold">Your Balance</h2>
-              <p className="text-sm text-gray-500">Available for games</p>
-            </div>
-            <DollarSign className="h-8 w-8 text-primary opacity-70" />
-          </div>
-          <div className="mb-4">
-            <p className="text-3xl font-bold">$500.00</p>
-            <div 
-              className="text-xs text-green-700 flex items-center mt-1 cursor-pointer"
-              onClick={() => setShowInterestDetails(!showInterestDetails)}
-            >
-              <TrendingUp className="h-3 w-3 mr-1" />
-              $50.00 earning 3% APY
-              {showInterestDetails ? 
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1"><path d="m18 15-6-6-6 6"/></svg> : 
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1"><path d="m6 9 6 6 6-6"/></svg>
-              }
-            </div>
-            
-            {showInterestDetails && (
-              <div className="mt-3 p-3 rounded-md neumorphic-inset text-xs">
-                <h4 className="font-medium mb-2 text-sm">Interest Earnings</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Daily:</span>
-                    <span className="font-medium text-green-700">+$0.004</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Weekly:</span>
-                    <span className="font-medium text-green-700">+$0.03</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Monthly:</span>
-                    <span className="font-medium text-green-700">+$0.12</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Yearly (3% APY):</span>
-                    <span className="font-medium text-green-700">+$1.50</span>
-                  </div>
-                  <div className="flex justify-between pt-2 border-t border-gray-200 mt-2">
-                    <span className="text-gray-600">Earned so far:</span>
-                    <span className="font-medium text-green-700">+$0.37</span>
-                  </div>
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="mb-8">
+          <Card className="neumorphic-card">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Total Balance</p>
+                  <h2 className="text-3xl font-bold">
+                    {isLoadingBalances ? (
+                      <div className="h-9 w-36 animate-pulse bg-gray-200 rounded"></div>
+                    ) : (
+                      formatCurrency(balances?.totalBalance || 0)
+                    )}
+                  </h2>
                 </div>
-              </div>
-            )}
-          </div>
-          <div className="flex gap-2 mt-6">
-            <Button 
-              className="flex-1 shadow-lg"
-              style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }} 
-              onClick={() => navigate('/deposit')}
-            >
-              Add Funds
-            </Button>
-            <Button 
-              variant="outline" 
-              className="flex-1 neumorphic-button" 
-              onClick={() => {
-                toast({
-                  title: "Cash Out",
-                  description: "The withdrawal feature is coming soon!"
-                });
-              }}
-            >
-              Cash Out
-            </Button>
-          </div>
-        </div>
-        
-        {/* Coinbase Connection Card */}
-        <div className="neumorphic-card p-6 mb-6">
-          <div className="flex items-center mb-4">
-            <Wallet className="w-5 h-5 mr-2 text-primary" />
-            <h2 className="text-lg font-semibold">Coinbase Wallet</h2>
-          </div>
-          <p className="text-sm text-gray-600 mb-4">
-            Connect your Coinbase wallet for faster withdrawals and deposits
-          </p>
-          
-          <div className={`p-4 mb-4 rounded-lg neumorphic-inset`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className={`w-3 h-3 ${isConnected ? 'bg-green-500' : 'bg-gray-400'} rounded-full mr-2`}></div>
-                <span className={`font-medium ${isConnected ? 'text-green-800' : 'text-gray-800'}`}>
-                  {isConnected ? "Connected to Coinbase" : "Not connected"}
-                </span>
-              </div>
-            </div>
-            
-            {isConnected && (
-              <div className="mt-2 pt-2 border-t border-gray-200">
-                <div className="font-mono text-sm break-all text-gray-600">
-                  {address ? `${address.slice(0, 8)}...${address.slice(-6)}` : ''}
-                </div>
-              </div>
-            )}
-          </div>
-          
-          {!isConnected ? (
-            <Button 
-              className="w-full shadow-lg"
-              style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }}
-              onClick={connectWallet}
-              disabled={isConnecting}
-            >
-              {isConnecting ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Connecting...
-                </span>
-              ) : (
-                <span className="flex items-center justify-center">
-                  <Wallet className="h-4 w-4 mr-2" />
-                  Connect Coinbase
-                </span>
-              )}
-            </Button>
-          ) : (
-            <div className="space-y-4">
-              <div className="neumorphic-inset p-4 rounded-lg">
-                <div className="text-sm text-gray-700 mb-3">Benefits of connected wallet:</div>
-                <div className="space-y-2">
-                  <div className="flex items-center text-sm">
-                    <Shield className="h-4 w-4 text-green-500 mr-2" />
-                    <span>Secure escrow for game payments</span>
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <TrendingUp className="h-4 w-4 text-green-500 mr-2" />
-                    <span>Automatic interest on your balance</span>
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <DollarSign className="h-4 w-4 text-green-500 mr-2" />
-                    <span>Fast withdrawals directly to wallet</span>
-                  </div>
+                <div className="flex gap-2">
+                  <Button 
+                    className="neumorphic-button" 
+                    onClick={() => navigate("/deposit")}
+                  >
+                    <ArrowDownRight className="h-4 w-4 mr-2" />
+                    Add Funds
+                  </Button>
+                  <Button 
+                    className="neumorphic-button"
+                    onClick={() => navigate("/cash-out")}
+                  >
+                    <ArrowUpRight className="h-4 w-4 mr-2" />
+                    Cash Out
+                  </Button>
                 </div>
               </div>
               
-              <Button
-                variant="outline"
-                className="w-full neumorphic-button"
-                onClick={disconnectWallet}
-              >
-                Disconnect Wallet
-              </Button>
+              <div className="grid grid-cols-2 gap-4 mt-6">
+                <div className="neumorphic-inset p-4 rounded-lg">
+                  <div className="flex items-center text-sm mb-1">
+                    <Wallet className="h-4 w-4 mr-2 text-blue-500" />
+                    <span>Available Balance</span>
+                  </div>
+                  <p className="text-xl font-semibold">
+                    {isLoadingBalances ? (
+                      <div className="h-6 w-24 animate-pulse bg-gray-200 rounded"></div>
+                    ) : (
+                      formatCurrency(balances?.idleBalance || 0)
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Funds not currently in games</p>
+                </div>
+                
+                <div className="neumorphic-inset p-4 rounded-lg">
+                  <div className="flex items-center text-sm mb-1">
+                    <Clock className="h-4 w-4 mr-2 text-amber-500" />
+                    <span>In Active Games</span>
+                  </div>
+                  <p className="text-xl font-semibold">
+                    {isLoadingBalances ? (
+                      <div className="h-6 w-24 animate-pulse bg-gray-200 rounded"></div>
+                    ) : (
+                      formatCurrency(balances?.betBalance || 0)
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Funds locked in active games</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <InterestDisplay />
+          
+          <Card className="neumorphic-card overflow-hidden">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
+              <CardDescription>
+                Manage your funds and games
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start text-left h-auto py-3 neumorphic-button"
+                  onClick={() => navigate("/deposit")}
+                >
+                  <div className="flex-shrink-0 mr-3 bg-blue-100 p-2 rounded-full">
+                    <ArrowDownRight className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">Add Funds</div>
+                    <div className="text-xs text-muted-foreground">Deposit using bank, card, or crypto</div>
+                  </div>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start text-left h-auto py-3 neumorphic-button"
+                  onClick={() => navigate("/cash-out")}
+                >
+                  <div className="flex-shrink-0 mr-3 bg-amber-100 p-2 rounded-full">
+                    <ArrowUpRight className="h-4 w-4 text-amber-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">Cash Out</div>
+                    <div className="text-xs text-muted-foreground">Withdraw funds to your bank or wallet</div>
+                  </div>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start text-left h-auto py-3 neumorphic-button"
+                  onClick={() => navigate("/game-setup")}
+                >
+                  <div className="flex-shrink-0 mr-3 bg-green-100 p-2 rounded-full">
+                    <TrendingUp className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium">Create Game</div>
+                    <div className="text-xs text-muted-foreground">Start a new poker game with friends</div>
+                  </div>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <div className="mb-6">
+          <Tabs defaultValue="all" className="w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Transaction History</h2>
+              <TabsList className="neumorphic-card">
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="deposits">Deposits</TabsTrigger>
+                <TabsTrigger value="games">Games</TabsTrigger>
+                <TabsTrigger value="interest">Interest</TabsTrigger>
+              </TabsList>
             </div>
-          )}
+            
+            <TabsContent value="all" className="mt-0">
+              <Card className="neumorphic-card">
+                <CardContent className="p-0">
+                  <div className="divide-y">
+                    {mockTransactions.map(transaction => (
+                      <div key={transaction.id} className="flex items-center justify-between p-4">
+                        <div className="flex items-center">
+                          <div className={`p-2 rounded-full mr-3 ${
+                            transaction.type === 'deposit' ? 'bg-blue-100' : 
+                            transaction.type === 'interest' ? 'bg-green-100' :
+                            transaction.amount > 0 ? 'bg-green-100' : 'bg-amber-100'
+                          }`}>
+                            {transaction.type === 'deposit' ? (
+                              <ArrowDownRight className={`h-4 w-4 text-blue-600`} />
+                            ) : transaction.type === 'interest' ? (
+                              <TrendingUp className={`h-4 w-4 text-green-600`} />
+                            ) : transaction.amount > 0 ? (
+                              <ArrowDownRight className={`h-4 w-4 text-green-600`} />
+                            ) : (
+                              <ArrowUpRight className={`h-4 w-4 text-amber-600`} />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium">{transaction.description}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDistanceToNow(transaction.date, { addSuffix: true })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className={`font-medium ${
+                          transaction.amount > 0 ? 'text-green-600' : 'text-amber-600'
+                        }`}>
+                          {transaction.amount > 0 ? '+' : ''}{formatCurrency(transaction.amount)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="deposits" className="mt-0">
+              <Card className="neumorphic-card">
+                <CardContent className="p-0">
+                  <div className="divide-y">
+                    {mockTransactions
+                      .filter(tx => tx.type === 'deposit')
+                      .map(transaction => (
+                        <div key={transaction.id} className="flex items-center justify-between p-4">
+                          <div className="flex items-center">
+                            <div className="p-2 rounded-full bg-blue-100 mr-3">
+                              <ArrowDownRight className="h-4 w-4 text-blue-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium">{transaction.description}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(transaction.date, { addSuffix: true })}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="font-medium text-green-600">
+                            +{formatCurrency(transaction.amount)}
+                          </div>
+                        </div>
+                      ))}
+                    {!mockTransactions.some(tx => tx.type === 'deposit') && (
+                      <div className="p-6 text-center text-muted-foreground">
+                        No deposit transactions found
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="games" className="mt-0">
+              <Card className="neumorphic-card">
+                <CardContent className="p-0">
+                  <div className="divide-y">
+                    {mockTransactions
+                      .filter(tx => tx.type === 'game')
+                      .map(transaction => (
+                        <div key={transaction.id} className="flex items-center justify-between p-4">
+                          <div className="flex items-center">
+                            <div className={`p-2 rounded-full mr-3 ${
+                              transaction.amount > 0 ? 'bg-green-100' : 'bg-amber-100'
+                            }`}>
+                              {transaction.amount > 0 ? (
+                                <ArrowDownRight className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <ArrowUpRight className="h-4 w-4 text-amber-600" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium">{transaction.description}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(transaction.date, { addSuffix: true })}
+                              </p>
+                            </div>
+                          </div>
+                          <div className={`font-medium ${
+                            transaction.amount > 0 ? 'text-green-600' : 'text-amber-600'
+                          }`}>
+                            {transaction.amount > 0 ? '+' : ''}{formatCurrency(transaction.amount)}
+                          </div>
+                        </div>
+                      ))}
+                    {!mockTransactions.some(tx => tx.type === 'game') && (
+                      <div className="p-6 text-center text-muted-foreground">
+                        No game transactions found
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="interest" className="mt-0">
+              <Card className="neumorphic-card">
+                <CardContent className="p-0">
+                  <div className="divide-y">
+                    {mockTransactions
+                      .filter(tx => tx.type === 'interest')
+                      .map(transaction => (
+                        <div key={transaction.id} className="flex items-center justify-between p-4">
+                          <div className="flex items-center">
+                            <div className="p-2 rounded-full bg-green-100 mr-3">
+                              <TrendingUp className="h-4 w-4 text-green-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium">{transaction.description}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(transaction.date, { addSuffix: true })}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="font-medium text-green-600">
+                            +{formatCurrency(transaction.amount)}
+                          </div>
+                        </div>
+                      ))}
+                    {!mockTransactions.some(tx => tx.type === 'interest') && (
+                      <div className="p-6 text-center text-muted-foreground">
+                        No interest transactions found
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>

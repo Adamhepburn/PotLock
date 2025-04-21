@@ -3,20 +3,67 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, CreditCard, Building, Wallet, Shield, TrendingUp, DollarSign } from "lucide-react";
-import { useWeb3 } from "@/hooks/use-web3";
+import { 
+  ArrowLeft, CreditCard, Building, Wallet, Shield, TrendingUp, 
+  DollarSign, Loader2, Copy, CheckCircle, AlertCircle 
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import PlaidLinkButton from "@/components/deposit/PlaidLinkButton";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function DepositPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { isConnected, connectWallet, disconnectWallet, address, isConnecting } = useWeb3();
-  const [depositMethod, setDepositMethod] = useState<"bank" | "card" | "wallet">("bank");
+  const queryClient = useQueryClient();
+  const [depositMethod, setDepositMethod] = useState<"bank" | "card" | "crypto">("bank");
   const [amount, setAmount] = useState<string>("");
   const [isProcessingCard, setIsProcessingCard] = useState(false);
-  const [isProcessingCoinbase, setIsProcessingCoinbase] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+  
+  // Get crypto deposit address
+  const { 
+    data: depositAddress,
+    isLoading: isLoadingAddress,
+    isError: isAddressError,
+    refetch: refetchAddress
+  } = useQuery({
+    queryKey: ['/api/deposit/address'],
+    queryFn: async () => {
+      const res = await fetch('/api/deposit/address');
+      if (!res.ok) throw new Error('Failed to get deposit address');
+      return res.json();
+    },
+    enabled: depositMethod === 'crypto'
+  });
+  
+  // Mutation for credit card payment
+  const cardPaymentMutation = useMutation({
+    mutationFn: async (amount: number) => {
+      const response = await apiRequest("POST", "/api/coinbase/buy", {
+        amount,
+        paymentMethod: "card" // Server-side will handle getting a real payment method
+      });
+      if (!response.ok) {
+        throw new Error("Failed to process payment");
+      }
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Deposit Initiated",
+        description: `Your deposit of $${parseFloat(amount).toFixed(2)} is being processed.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/user/balance'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Payment Failed",
+        description: error.message || "There was a problem processing your payment. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
   
   const handleCreditCardPayment = async () => {
     if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
@@ -28,92 +75,28 @@ export default function DepositPage() {
       return;
     }
     
-    try {
-      setIsProcessingCard(true);
-      
-      // In a real implementation, we would:
-      // 1. Get payment methods from Coinbase
-      // 2. Let the user select or add a card
-      // 3. Process the payment with the selected method
-      
-      // For now, we'll simulate the process with a mock payment method
-      const mockPaymentMethod = "pm_card_" + Math.random().toString(36).substring(2, 15);
-      
-      // Call our coinbase/buy API endpoint
-      const response = await apiRequest("POST", "/api/coinbase/buy", {
-        amount: parseFloat(amount),
-        paymentMethod: mockPaymentMethod
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to process payment");
-      }
-      
-      // Process successful
-      toast({
-        title: "Deposit Successful",
-        description: `$${parseFloat(amount).toFixed(2)} has been added to your account.`,
-      });
-      
-    } catch (error) {
-      console.error("Error processing credit card payment:", error);
-      toast({
-        title: "Payment Failed",
-        description: "There was a problem processing your payment. Please try again or use a different method.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessingCard(false);
-    }
+    cardPaymentMutation.mutate(parseFloat(amount));
   };
   
-  const handleCoinbaseDeposit = async () => {
-    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-      toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid amount greater than $0.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (!isConnected || !address) {
-      toast({
-        title: "Wallet Not Connected",
-        description: "Please connect your Coinbase Wallet first.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    try {
-      setIsProcessingCoinbase(true);
-      
-      // Call our deposit API endpoint to deposit directly from wallet
-      const response = await apiRequest("POST", "/api/deposit", {
-        amount: parseFloat(amount)
-      });
-      
-      if (!response.ok) {
-        throw new Error("Failed to process deposit");
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(
+      () => {
+        setIsCopied(true);
+        toast({
+          title: "Address Copied",
+          description: "Deposit address copied to clipboard",
+        });
+        setTimeout(() => setIsCopied(false), 2000);
+      },
+      (err) => {
+        console.error('Could not copy text: ', err);
+        toast({
+          title: "Copy Failed",
+          description: "Failed to copy address to clipboard",
+          variant: "destructive"
+        });
       }
-      
-      // Process successful
-      toast({
-        title: "Deposit Successful",
-        description: `$${parseFloat(amount).toFixed(2)} has been added to your account.`,
-      });
-      
-    } catch (error) {
-      console.error("Error processing Coinbase deposit:", error);
-      toast({
-        title: "Deposit Failed",
-        description: "There was a problem processing your deposit. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessingCoinbase(false);
-    }
+    );
   };
 
   return (
@@ -150,9 +133,9 @@ export default function DepositPage() {
                 <CreditCard className="h-4 w-4 mr-2" />
                 Credit Card
               </TabsTrigger>
-              <TabsTrigger value="wallet" className="neumorphic-button data-[state=active]:shadow-inner">
+              <TabsTrigger value="crypto" className="neumorphic-button data-[state=active]:shadow-inner">
                 <Wallet className="h-4 w-4 mr-2" />
-                Coinbase
+                Crypto
               </TabsTrigger>
             </TabsList>
             
@@ -316,109 +299,94 @@ export default function DepositPage() {
               </div>
             </TabsContent>
             
-            {/* Coinbase Wallet */}
-            <TabsContent value="wallet">
+            {/* Crypto Deposit */}
+            <TabsContent value="crypto">
               <div className="neumorphic-inset p-6 rounded-xl mb-6">
                 <div className="flex items-center mb-4">
                   <Wallet className="h-5 w-5 mr-2 text-blue-500" />
-                  <h3 className="font-semibold">Connect Coinbase Wallet</h3>
+                  <h3 className="font-semibold">Deposit with Cryptocurrency</h3>
                 </div>
                 <p className="text-gray-600 text-sm mb-6">
-                  Connect your Coinbase Wallet to deposit funds quickly and securely.
+                  Deposit cryptocurrency directly to your PotLock account. We accept USDC on the Base network.
                 </p>
                 
-                <div className={`p-4 mb-6 rounded-lg neumorphic-inset`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className={`w-3 h-3 ${isConnected ? 'bg-green-500' : 'bg-gray-400'} rounded-full mr-2`}></div>
-                      <span className={`font-medium ${isConnected ? 'text-green-800' : 'text-gray-800'}`}>
-                        {isConnected ? "Connected to Coinbase" : "Not connected"}
-                      </span>
-                    </div>
+                {isLoadingAddress ? (
+                  <div className="neumorphic-inset p-6 rounded-lg flex items-center justify-center">
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin text-blue-500" />
+                    <span>Generating deposit address...</span>
                   </div>
-                  
-                  {isConnected && (
-                    <div className="mt-2 pt-2 border-t border-gray-200">
-                      <div className="font-mono text-sm break-all text-gray-600">
-                        {address ? `${address.slice(0, 8)}...${address.slice(-6)}` : ''}
-                      </div>
+                ) : isAddressError ? (
+                  <div className="neumorphic-inset p-6 rounded-lg">
+                    <div className="flex items-center text-red-500 mb-4">
+                      <AlertCircle className="h-5 w-5 mr-2" />
+                      <span className="font-medium">Error generating deposit address</span>
                     </div>
-                  )}
-                </div>
-                
-                {!isConnected ? (
-                  <Button 
-                    className="w-full shadow-lg"
-                    style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }}
-                    onClick={connectWallet}
-                    disabled={isConnecting}
-                  >
-                    {isConnecting ? (
-                      <span className="flex items-center">
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Connecting...
-                      </span>
-                    ) : (
-                      <span className="flex items-center justify-center">
-                        <Wallet className="h-4 w-4 mr-2" />
-                        Connect Coinbase
-                      </span>
-                    )}
-                  </Button>
-                ) : (
-                  <>
-                    <div className="space-y-4 mb-6">
-                      <div className="neumorphic-inset p-3 rounded-lg">
-                        <div className="flex justify-between items-center">
-                          <label className="text-sm text-gray-600">Amount</label>
-                          <div className="flex items-center">
-                            <span className="text-gray-600 mr-2">$</span>
-                            <input 
-                              type="text" 
-                              className="w-24 p-2 rounded-md outline-none bg-transparent text-right" 
-                              placeholder="0.00"
-                              value={amount}
-                              onChange={(e) => setAmount(e.target.value)}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
+                    <p className="text-sm text-gray-600 mb-4">
+                      We couldn't generate a deposit address at this time. Please try again later.
+                    </p>
                     <Button 
-                      className="w-full shadow-lg mb-4"
-                      style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }}
-                      disabled={!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0 || isProcessingCoinbase}
-                      onClick={handleCoinbaseDeposit}
-                    >
-                      {isProcessingCoinbase ? (
-                        <span className="flex items-center">
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Processing...
-                        </span>
-                      ) : (
-                        <>
-                          <DollarSign className="h-4 w-4 mr-2" />
-                          Deposit ${amount ? parseFloat(amount).toFixed(2) : '0.00'}
-                        </>
-                      )}
-                    </Button>
-                    
-                    <Button
                       variant="outline"
                       className="w-full neumorphic-button"
-                      onClick={disconnectWallet}
+                      onClick={() => refetchAddress()}
                     >
-                      Disconnect Wallet
+                      Try Again
                     </Button>
-                  </>
-                )}
+                  </div>
+                ) : depositAddress ? (
+                  <div className="space-y-6">
+                    <div className="neumorphic-inset p-4 rounded-lg">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Your USDC Deposit Address</h4>
+                      <div className="bg-white/50 p-3 rounded-md font-mono text-xs break-all mb-3">
+                        {depositAddress.address}
+                      </div>
+                      <div className="flex justify-between">
+                        <div className="text-xs text-gray-500">Network: <span className="font-medium">Base</span></div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-xs flex items-center text-blue-500 hover:text-blue-700"
+                          onClick={() => copyToClipboard(depositAddress.address)}
+                        >
+                          {isCopied ? (
+                            <>
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Copied
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-3 w-3 mr-1" />
+                              Copy Address
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="neumorphic-inset p-4 rounded-lg space-y-2">
+                      <div className="flex items-center text-sm">
+                        <Shield className="h-4 w-4 text-green-500 mr-2" />
+                        <span className="font-medium">Important</span>
+                      </div>
+                      <ul className="text-xs text-gray-600 space-y-2 pl-6 list-disc">
+                        <li>Only send USDC on the Base network to this address</li>
+                        <li>Sending any other cryptocurrency may result in permanent loss</li>
+                        <li>Minimum deposit: $5.00 worth of USDC</li>
+                        <li>Funds typically arrive within 10-30 minutes</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="neumorphic p-4 rounded-lg">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Transaction Status</h4>
+                      <div className="flex items-center mb-3">
+                        <div className="w-3 h-3 bg-yellow-400 rounded-full mr-2"></div>
+                        <span className="text-gray-600 text-sm">Waiting for deposit</span>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Your balance will update automatically once your deposit is confirmed.
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </TabsContent>
           </Tabs>

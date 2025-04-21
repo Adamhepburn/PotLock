@@ -210,7 +210,7 @@ export default function GameSetupPage() {
           toast({
             title: "Game created, but invitations failed",
             description: "Your game was created, but we couldn't invite your friends.",
-            variant: "warning"
+            variant: "destructive"
           });
         }
       }
@@ -283,13 +283,13 @@ export default function GameSetupPage() {
     },
     onSuccess: (data) => {
       // If any invitations failed, show a warning with details
-      const failedInvites = data.results?.filter(r => !r.success) || [];
+      const failedInvites = data.results?.filter((r: { friendId: string; success: boolean }) => !r.success) || [];
       
       if (failedInvites.length > 0) {
         toast({
           title: "Some invitations not sent",
           description: `Sent ${data.invitedCount} invitations, but ${failedInvites.length} failed.`,
-          variant: "warning"
+          variant: "destructive"
         });
       } else {
         toast({

@@ -58,7 +58,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const games = await storage.getGamesByUser(req.user.id);
-      res.json(games);
+      
+      // Get enhanced game information
+      const enhancedGames = await Promise.all(games.map(async (game) => {
+        // Get players
+        const players = await storage.getPlayersInGame(game.id);
+        
+        // Get creator info
+        const creator = await storage.getUser(game.createdById);
+        
+        // Get pending invitations
+        const invitations = await storage.getGameInvitationsByGame(game.id);
+        const pendingInvitations = invitations.filter(inv => inv.status === "pending");
+        
+        // Check user's reservation status
+        const userReservation = await storage.getGameReservationByUserAndGame(req.user.id, game.id);
+        
+        // Check if user is creator
+        const isCreator = game.createdById === req.user.id;
+        
+        // Check if user is a player
+        const isPlayer = players.some(player => player.userId === req.user.id);
+        
+        return {
+          ...game,
+          creatorUsername: creator?.username || "Unknown",
+          creatorDisplayName: creator?.displayName || creator?.username || "Unknown",
+          currentPlayers: players.length,
+          pendingInvitations: pendingInvitations.length,
+          userRole: isCreator ? "creator" : isPlayer ? "player" : "invited",
+          reservationStatus: userReservation ? userReservation.status : null,
+          hasDeposited: userReservation?.status === "confirmed"
+        };
+      }));
+      
+      res.json(enhancedGames);
     } catch (error) {
       next(error);
     }
@@ -556,6 +590,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Game Invitation Routes
   // Invite a friend to a game
+  // Batch invite multiple friends to a game
+  app.post("/api/games/:id/batch-invite", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const gameId = parseInt(req.params.id);
+      if (isNaN(gameId)) {
+        return res.status(400).json({ message: "Invalid game ID" });
+      }
+
+      const { friendIds } = req.body;
+      if (!friendIds || !Array.isArray(friendIds) || friendIds.length === 0) {
+        return res.status(400).json({ message: "Friend IDs array is required" });
+      }
+
+      // Find the game
+      const game = await storage.getGame(gameId);
+      if (!game) {
+        return res.status(404).json({ message: "Game not found" });
+      }
+
+      // Check if the user is associated with the game
+      const isCreator = game.createdById === req.user.id;
+      const isPlayer = await storage.getPlayerByUserAndGame(req.user.id, gameId);
+      
+      if (!isCreator && !isPlayer) {
+        return res.status(403).json({ message: "You're not associated with this game" });
+      }
+
+      const results = [];
+      let successCount = 0;
+
+      // Process each friend invitation
+      for (const friendId of friendIds) {
+        try {
+          // Find the friend
+          const friend = await storage.getUser(parseInt(friendId));
+          if (!friend) {
+            results.push({ friendId, success: false, message: "Friend not found" });
+            continue;
+          }
+
+          // Check if there's an existing friendship
+          const friendship = await storage.getFriendshipByUsers(req.user.id, friend.id);
+          if (!friendship || friendship.status !== "accepted") {
+            results.push({ friendId, success: false, message: "Not a friend" });
+            continue;
+          }
+
+          // Check if there's an existing invitation
+          const existingInvite = await storage.getGameInvitationByUserAndGame(friend.id, gameId);
+          if (existingInvite && existingInvite.status === "pending") {
+            results.push({ friendId, success: false, message: "Invitation already sent" });
+            continue;
+          }
+
+          // Create a new invitation
+          const invitationData = insertGameInvitationSchema.parse({
+            gameId,
+            inviterId: req.user.id,
+            inviteeId: friend.id,
+            status: "pending"
+          });
+
+          await storage.createGameInvitation(invitationData);
+          results.push({ friendId, success: true, message: "Invitation sent successfully" });
+          successCount++;
+        } catch (error) {
+          results.push({ 
+            friendId, 
+            success: false, 
+            message: error instanceof Error ? error.message : "Unknown error" 
+          });
+        }
+      }
+
+      res.status(200).json({ 
+        success: true, 
+        invitedCount: successCount, 
+        results 
+      });
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      next(error);
+    }
+  });
+
+  // Single friend invitation to a game
   app.post("/api/games/:id/invite", async (req, res, next) => {
     try {
       if (!req.isAuthenticated()) {

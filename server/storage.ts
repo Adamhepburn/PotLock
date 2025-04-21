@@ -62,6 +62,7 @@ export interface IStorage {
   getGameInvitationsByUser(userId: number): Promise<GameInvitation[]>;
   getGameInvitationsByGame(gameId: number): Promise<GameInvitation[]>;
   updateGameInvitationStatus(id: number, status: string): Promise<GameInvitation | undefined>;
+  getGameInvitationByUserAndGame(userId: number, gameId: number): Promise<GameInvitation | undefined>;
   
   // Game Reservation methods
   createGameReservation(reservation: InsertGameReservation): Promise<GameReservation>;
@@ -349,6 +350,12 @@ export class MemStorage implements IStorage {
     const updatedInvitation = { ...invitation, status };
     this.gameInvitations.set(id, updatedInvitation);
     return updatedInvitation;
+  }
+  
+  async getGameInvitationByUserAndGame(userId: number, gameId: number): Promise<GameInvitation | undefined> {
+    return Array.from(this.gameInvitations.values()).find(
+      (invitation) => invitation.inviteeId === userId && invitation.gameId === gameId
+    );
   }
 
   // Game Reservation methods

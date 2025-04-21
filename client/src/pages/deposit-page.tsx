@@ -11,11 +11,13 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import PlaidLinkButton from "@/components/deposit/PlaidLinkButton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function DepositPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user, devMode } = useAuth();
   const [depositMethod, setDepositMethod] = useState<"bank" | "card" | "crypto">("bank");
   const [amount, setAmount] = useState<string>("");
   const [isProcessingCard, setIsProcessingCard] = useState(false);
@@ -30,11 +32,21 @@ export default function DepositPage() {
   } = useQuery({
     queryKey: ['/api/deposit/address'],
     queryFn: async () => {
-      const res = await fetch('/api/deposit/address');
+      // In dev mode, return a mock deposit address
+      if (devMode) {
+        return {
+          id: `mock-${user?.id}-${Date.now()}`,
+          address: '0x7e1E393CeE9d3Ef545fC7EE6B01b6dEDdA7AF58D',
+          network: 'base',
+          uri: 'ethereum:0x7e1E393CeE9d3Ef545fC7EE6B01b6dEDdA7AF58D?token=USDC'
+        };
+      }
+      
+      const res = await apiRequest("GET", "/api/deposit/address");
       if (!res.ok) throw new Error('Failed to get deposit address');
-      return res.json();
+      return await res.json();
     },
-    enabled: depositMethod === 'crypto'
+    enabled: depositMethod === 'crypto' && !!user
   });
   
   // Mutation for credit card payment

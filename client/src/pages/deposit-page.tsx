@@ -13,7 +13,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Import logos
-import plaidLogoSrc from "@/assets/plaid-logo.svg";
 import coinbaseLogoSrc from "@/assets/coinbase-logo.svg";
 import baseLogoSrc from "@/assets/base-logo.svg";
 import usdcLogoSrc from "@/assets/usdc-logo.svg";
@@ -134,8 +133,7 @@ export default function DepositPage() {
           <div>
             <h3 className="font-semibold text-lg mb-1">Bank Account</h3>
             <div className="flex items-center">
-              <img src={plaidLogoSrc} alt="Plaid" className="h-4 mr-2" />
-              <p className="text-sm text-gray-600">Connect securely via Plaid</p>
+              <p className="text-sm text-gray-600">Connect securely via bank login</p>
             </div>
           </div>
         </div>

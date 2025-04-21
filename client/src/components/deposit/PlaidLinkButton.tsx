@@ -1,11 +1,10 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Building } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { usePlaidLink } from "react-plaid-link";
-import plaidLogoSrc from "@/assets/plaid-logo.svg";
 
 interface PlaidLinkButtonProps {
   amount?: string;
@@ -197,7 +196,7 @@ export default function PlaidLinkButton({ amount, onSuccess }: PlaidLinkButtonPr
         </span>
       ) : (
         <span className="flex items-center justify-center">
-          <img src={plaidLogoSrc} alt="Plaid" className="h-6 mr-2" />
+          <Building className="h-5 w-5 mr-2 text-blue-500" />
           <span>Connect your bank securely</span>
         </span>
       )}

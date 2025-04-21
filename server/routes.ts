@@ -15,6 +15,14 @@ import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { nanoid } from "nanoid";
 
+// Import Plaid API functions
+const { 
+  createLinkToken, 
+  exchangePublicToken, 
+  getBankAccounts, 
+  initiateTransfer 
+} = require('./plaid');
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes (/api/register, /api/login, /api/user, /api/logout)
   setupAuth(app);

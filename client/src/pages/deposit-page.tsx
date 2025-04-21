@@ -5,13 +5,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   ArrowLeft, CreditCard, Building, Wallet, Shield, TrendingUp, 
-  DollarSign, Loader2, Copy, CheckCircle, AlertCircle 
+  DollarSign, Loader2, Copy, CheckCircle, AlertCircle, Info
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import PlaidLinkButton from "@/components/deposit/PlaidLinkButton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+// Import logos
+import plaidLogoSrc from "@/assets/plaid-logo.svg";
+import coinbaseLogoSrc from "@/assets/coinbase-logo.svg";
+import baseLogoSrc from "@/assets/base-logo.svg";
+import usdcLogoSrc from "@/assets/usdc-logo.svg";
 
 export default function DepositPage() {
   const [, navigate] = useLocation();
@@ -280,26 +287,40 @@ export default function DepositPage() {
                 </div>
                 
                 <Button 
-                  className="w-full shadow-lg"
-                  style={{ backgroundColor: "hsl(204, 80%, 63%)", color: "white" }}
+                  className="w-full shadow-lg bg-white hover:bg-gray-50 text-gray-800 border border-gray-200"
                   disabled={!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0}
                   onClick={handleCreditCardPayment}
                 >
                   {isProcessingCard ? (
                     <span className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Processing...
                     </span>
                   ) : (
-                    <>
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      Add ${amount ? parseFloat(amount).toFixed(2) : '0.00'}
-                    </>
+                    <span className="flex items-center justify-center">
+                      <img src={coinbaseLogoSrc} alt="Coinbase" className="h-6 mr-2" />
+                      <span>Add ${amount ? parseFloat(amount).toFixed(2) : '0.00'} with Coinbase</span>
+                    </span>
                   )}
                 </Button>
+                
+                <div className="flex justify-center mt-3">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center text-xs text-blue-500 cursor-help">
+                          <Info className="h-3 w-3 mr-1" />
+                          <span>Powered by Coinbase</span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-[250px]">
+                        <p className="text-xs">
+                          Coinbase is a trusted platform for buying and selling cryptocurrency. We use their secure payment infrastructure to process your card payments.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 
                 <div className="flex items-center justify-center mt-4">
                   <div className="flex space-x-2">
@@ -321,6 +342,19 @@ export default function DepositPage() {
                 <p className="text-gray-600 text-sm mb-6">
                   Deposit cryptocurrency directly to your PotLock account. We accept USDC on the Base network.
                 </p>
+                
+                <div className="bg-white/50 p-4 rounded-lg mb-6">
+                  <div className="flex items-center mb-4">
+                    <div className="flex mr-3">
+                      <img src={usdcLogoSrc} alt="USDC" className="h-8" />
+                      <img src={baseLogoSrc} alt="Base" className="h-8 -ml-2" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium">USDC on Base Network</h4>
+                      <p className="text-xs text-gray-500">Fast transactions, low fees</p>
+                    </div>
+                  </div>
+                </div>
                 
                 {isLoadingAddress ? (
                   <div className="neumorphic-inset p-6 rounded-lg flex items-center justify-center">
@@ -347,12 +381,21 @@ export default function DepositPage() {
                 ) : depositAddress ? (
                   <div className="space-y-6">
                     <div className="neumorphic-inset p-4 rounded-lg">
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">Your USDC Deposit Address</h4>
+                      <div className="flex justify-between items-center mb-2">
+                        <h4 className="text-sm font-medium text-gray-700">Your USDC Deposit Address</h4>
+                        <div className="flex items-center text-xs">
+                          <img src={baseLogoSrc} alt="Base" className="h-4 mr-1" />
+                          <span className="font-medium">Base Network</span>
+                        </div>
+                      </div>
                       <div className="bg-white/50 p-3 rounded-md font-mono text-xs break-all mb-3">
                         {depositAddress.address}
                       </div>
                       <div className="flex justify-between">
-                        <div className="text-xs text-gray-500">Network: <span className="font-medium">Base</span></div>
+                        <div className="flex items-center text-xs text-gray-500">
+                          <img src={coinbaseLogoSrc} alt="Coinbase" className="h-4 mr-1" />
+                          <span>Works with Coinbase, Metamask & more</span>
+                        </div>
                         <Button 
                           variant="ghost" 
                           size="sm" 
@@ -376,7 +419,7 @@ export default function DepositPage() {
                     
                     <div className="neumorphic-inset p-4 rounded-lg space-y-2">
                       <div className="flex items-center text-sm">
-                        <Shield className="h-4 w-4 text-green-500 mr-2" />
+                        <Shield className="h-4 w-4 text-amber-500 mr-2" />
                         <span className="font-medium">Important</span>
                       </div>
                       <ul className="text-xs text-gray-600 space-y-2 pl-6 list-disc">
@@ -399,6 +442,29 @@ export default function DepositPage() {
                     </div>
                   </div>
                 ) : null}
+                
+                {/* Don't have crypto? */}
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-medium">Don't have USDC?</h4>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-blue-500 text-xs"
+                      onClick={() => setDepositMethod("card")}
+                    >
+                      Use Credit Card Instead
+                    </Button>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full bg-white hover:bg-gray-50 text-gray-800 border border-gray-200"
+                    onClick={() => window.open("https://www.coinbase.com/", "_blank")}
+                  >
+                    <img src={coinbaseLogoSrc} alt="Coinbase" className="h-5 mr-2" />
+                    Get USDC from Coinbase
+                  </Button>
+                </div>
               </div>
             </TabsContent>
           </Tabs>

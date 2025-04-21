@@ -126,6 +126,11 @@ async function withdrawForUser(userAddress, amount, destinationAddress) {
  */
 async function getUserBalances(userAddress) {
   try {
+    // Check if contract is available before proceeding
+    if (!potlockContract) {
+      throw new Error("Smart contract is not initialized. Missing ADMIN_WALLET_PRIVATE_KEY.");
+    }
+    
     // Get total balance
     const totalBalance = await potlockContract.balanceOf(userAddress);
     

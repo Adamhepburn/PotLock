@@ -115,7 +115,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Game not found" });
       }
 
-      res.json(game);
+      // Get players
+      const players = await storage.getPlayersInGame(gameId);
+      
+      // Get player details
+      const playersWithDetails = await Promise.all(
+        players.map(async (player) => {
+          const user = await storage.getUser(player.userId);
+          return {
+            ...player,
+            username: user?.username || "Unknown",
+            displayName: user?.displayName || user?.username || "Unknown",
+            profileImage: user?.profileImage || null,
+            email: user?.email || null
+          };
+        })
+      );
+      
+      // Get creator info
+      const creator = await storage.getUser(game.createdById);
+      
+      // Get pending invitations
+      const invitations = await storage.getGameInvitationsByGame(gameId);
+      
+      // Group invitations by status
+      const pendingInvitations = invitations.filter(inv => inv.status === "pending");
+      const acceptedInvitations = invitations.filter(inv => inv.status === "accepted");
+      const declinedInvitations = invitations.filter(inv => inv.status === "declined");
+      
+      // Get invitation details
+      const invitationsWithDetails = await Promise.all(
+        pendingInvitations.map(async (invitation) => {
+          const invitee = await storage.getUser(invitation.inviteeId);
+          const inviter = await storage.getUser(invitation.inviterId);
+          return {
+            ...invitation,
+            inviteeName: invitee?.username || "Unknown",
+            inviterName: inviter?.username || "Unknown"
+          };
+        })
+      );
+      
+      // Check user's role
+      const isCreator = game.createdById === req.user.id;
+      const userPlayer = players.find(player => player.userId === req.user.id);
+      const userRole = isCreator ? "creator" : userPlayer ? "player" : "viewer";
+      
+      // Check user's reservation status
+      const userReservation = await storage.getGameReservationByUserAndGame(req.user.id, gameId);
+      
+      // Combine all information
+      const gameWithDetails = {
+        ...game,
+        creator: {
+          id: creator?.id,
+          username: creator?.username || "Unknown",
+          displayName: creator?.displayName || creator?.username || "Unknown",
+          profileImage: creator?.profileImage || null,
+          email: creator?.email || null
+        },
+        players: playersWithDetails,
+        invitations: invitationsWithDetails,
+        stats: {
+          playerCount: players.length,
+          pendingInvitations: pendingInvitations.length,
+          acceptedInvitations: acceptedInvitations.length,
+          declinedInvitations: declinedInvitations.length,
+          maxCapacity: game.maxPlayers || 10
+        },
+        userStatus: {
+          role: userRole,
+          isPlayer: !!userPlayer,
+          hasReservation: !!userReservation,
+          reservationStatus: userReservation?.status || null,
+          hasDeposited: userReservation?.status === "confirmed"
+        }
+      };
+
+      res.json(gameWithDetails);
     } catch (error) {
       next(error);
     }

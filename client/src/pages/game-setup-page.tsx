@@ -167,15 +167,55 @@ export default function GameSetupPage() {
         };
       }
       
-      const res = await apiRequest("POST", "/api/games", gameData);
+      // Remove the invitedFriends field from the gameData before sending
+      const { invitedFriends, ...gameCreateData } = gameData;
+      
+      const res = await apiRequest("POST", "/api/games", gameCreateData);
       if (!res.ok) throw new Error('Failed to create game');
       return await res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: async (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/games'] });
       setNewGameId(data.id);
       setNewGameCode(data.code);
-      // Reset form but keep selected friends for invitation
+      
+      // Send invitations if there are friends selected
+      if (variables.invitedFriends && variables.invitedFriends.length > 0) {
+        try {
+          // Use the batch-invite endpoint for multiple friends at once
+          const inviteRes = await apiRequest("POST", `/api/games/${data.id}/batch-invite`, { 
+            friendIds: variables.invitedFriends 
+          });
+          
+          if (inviteRes.ok) {
+            const inviteData = await inviteRes.json();
+            // If any invitations failed, show a warning with details
+            const failedInvites = inviteData.results?.filter((r: { friendId: string; success: boolean }) => !r.success) || [];
+            
+            if (failedInvites.length > 0) {
+              toast({
+                title: "Some invitations not sent",
+                description: `Sent ${inviteData.invitedCount} invitations, but ${failedInvites.length} failed.`,
+                variant: "destructive"
+              });
+            } else if (inviteData.invitedCount > 0) {
+              toast({
+                title: "Invitations sent",
+                description: `Successfully sent ${inviteData.invitedCount} invitations.`,
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Failed to send invitations:", error);
+          toast({
+            title: "Game created, but invitations failed",
+            description: "Your game was created, but we couldn't invite your friends.",
+            variant: "warning"
+          });
+        }
+      }
+      
+      // Reset form fields
       setGameName("");
       setBuyInAmount("");
       setGameDate("");
@@ -190,6 +230,9 @@ export default function GameSetupPage() {
         description: error.message,
         variant: "destructive"
       });
+      setIsCreatingGame(false);
+    },
+    onSettled: () => {
       setIsCreatingGame(false);
     }
   });
@@ -225,23 +268,36 @@ export default function GameSetupPage() {
     }
   });
   
-  // Send invitations mutation
+  // Send invitations mutation (using batch invitation endpoint)
   const sendInvitationsMutation = useMutation({
     mutationFn: async ({ gameId, friendIds }: { gameId: number, friendIds: string[] }) => {
       if (devMode) {
         // Mock success response
-        return { success: true, invitedCount: friendIds.length };
+        return { success: true, invitedCount: friendIds.length, results: friendIds.map(id => ({ friendId: id, success: true })) };
       }
       
-      const res = await apiRequest("POST", "/api/games/invite", { gameId, friendIds });
+      // Use batch-invite endpoint for multiple friends at once
+      const res = await apiRequest("POST", `/api/games/${gameId}/batch-invite`, { friendIds });
       if (!res.ok) throw new Error('Failed to send invitations');
       return await res.json();
     },
     onSuccess: (data) => {
-      toast({
-        title: "Invitations sent",
-        description: `Successfully sent ${data.invitedCount} invitations.`,
-      });
+      // If any invitations failed, show a warning with details
+      const failedInvites = data.results?.filter(r => !r.success) || [];
+      
+      if (failedInvites.length > 0) {
+        toast({
+          title: "Some invitations not sent",
+          description: `Sent ${data.invitedCount} invitations, but ${failedInvites.length} failed.`,
+          variant: "warning"
+        });
+      } else {
+        toast({
+          title: "Invitations sent",
+          description: `Successfully sent ${data.invitedCount} invitations.`,
+        });
+      }
+      
       setSelectedFriends([]);
       setShowInviteDialog(false);
     },

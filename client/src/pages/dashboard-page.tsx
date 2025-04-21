@@ -30,7 +30,8 @@ import {
   Search,
   Star,
   PlusCircle,
-  Wallet
+  Wallet,
+  ChevronDown
 } from "lucide-react";
 
 // Import our new components
@@ -258,112 +259,130 @@ export default function DashboardPage() {
           </Card>
         ) : filteredGames && filteredGames.length > 0 ? (
           <div className="space-y-6">
-            {filteredGames.map(game => (
-              <div key={game.id} className="neumorphic-card overflow-hidden p-5">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-800">{game.name}</h3>
-                    <div className="flex items-center gap-1 text-gray-600 text-sm mt-1">
-                      <User className="h-3.5 w-3.5" /> 
-                      Hosted by {game.creator.displayName || game.creator.username}
+            {filteredGames.map(game => {
+              const [isExpanded, setIsExpanded] = useState(false);
+              const gameDate = game.gameDate ? new Date(game.gameDate) : null;
+              
+              return (
+                <div key={game.id} className="neumorphic-card overflow-hidden">
+                  {/* Simplified Card View */}
+                  <div className="p-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="text-lg font-bold text-gray-800">{game.name}</h3>
+                      <Badge variant={game.isPrivate ? "outline" : "secondary"} className={game.isPrivate ? "bg-gray-100" : "bg-primary/10 text-primary border-0"}>
+                        {game.isPrivate ? "Private" : "Open"}
+                      </Badge>
                     </div>
-                  </div>
-                  <Badge variant={game.isPrivate ? "outline" : "secondary"} className={game.isPrivate ? "bg-gray-100" : "bg-primary/10 text-primary border-0"}>
-                    {game.isPrivate ? "Private" : "Open"}
-                  </Badge>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-center">
-                      <CalendarDays className="h-4 w-4 text-primary mr-2" />
-                      <div className="text-sm">
-                        {game.gameDate 
-                          ? new Date(game.gameDate).toLocaleDateString('en-US', {
-                              weekday: 'short',
+                    
+                    {/* Simplified Content - Most Important Details */}
+                    <div className="flex items-center justify-between my-2">
+                      <div className="flex items-center">
+                        <div className="flex items-center mr-4">
+                          <CalendarDays className="h-4 w-4 text-primary mr-1" />
+                          <span className="text-sm">
+                            {gameDate ? gameDate.toLocaleDateString('en-US', {
                               month: 'short',
                               day: 'numeric'
-                            })
-                          : "Date not set"}
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 text-primary mr-2" />
-                      <div className="text-sm">
-                        {game.gameDate
-                          ? new Date(game.gameDate).toLocaleTimeString('en-US', {
+                            }) : "TBD"}
+                          </span>
+                        </div>
+                        <div className="flex items-center">
+                          <Clock className="h-4 w-4 text-primary mr-1" />
+                          <span className="text-sm">
+                            {gameDate ? gameDate.toLocaleTimeString('en-US', {
                               hour: '2-digit',
                               minute: '2-digit'
-                            })
-                          : "Time not set"}
+                            }) : "TBD"}
+                          </span>
+                        </div>
                       </div>
+                      
+                      <div className="flex items-center">
+                        <DollarSign className="h-4 w-4 text-green-600 mr-1" />
+                        <span className="font-medium">${game.buyInAmount.toString()}</span>
+                      </div>
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex justify-between items-center mt-3">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="text-primary hover:text-primary/80"
+                        onClick={() => setIsExpanded(!isExpanded)}
+                      >
+                        {isExpanded ? "Show Less" : "Show More"}
+                        <ChevronDown className={`h-4 w-4 ml-1 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                      </Button>
+                      
+                      {game.hasReserved ? (
+                        <Badge className="bg-green-50 text-green-700 border-green-200">
+                          Spot Reserved
+                        </Badge>
+                      ) : reservingGameId === game.id ? (
+                        <div className="flex items-center">
+                          <span className="text-xs mr-2">Reserving...</span>
+                          <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                        </div>
+                      ) : (
+                        <Button 
+                          size="sm"
+                          className="primary-action-button"
+                          onClick={() => handleReserveSpot(game.id, game.buyInAmount.toString())}
+                        >
+                          <PlusCircle className="h-4 w-4 mr-1" />
+                          Reserve Spot
+                        </Button>
+                      )}
                     </div>
                   </div>
                   
-                  <div>
-                    <div className="flex items-start">
-                      <MapPin className="h-4 w-4 text-primary mt-0.5 mr-2" />
-                      <div className="text-sm">
-                        {game.location || "Location not specified"}
+                  {/* Expanded Details */}
+                  {isExpanded && (
+                    <div className="border-t border-gray-100 p-4 bg-gray-50">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-1 text-gray-600 text-sm">
+                          <User className="h-3.5 w-3.5" /> 
+                          Hosted by {game.creator.displayName || game.creator.username}
+                        </div>
+                        
+                        <div className="flex items-start">
+                          <MapPin className="h-4 w-4 text-primary mt-0.5 mr-2" />
+                          <div className="text-sm">
+                            {game.location || "Location not specified"}
+                          </div>
+                        </div>
+                        
+                        {game.description && (
+                          <div className="text-sm text-gray-600 pt-1">
+                            {game.description}
+                          </div>
+                        )}
+                        
+                        <div className="neumorphic-inset flex items-center justify-between py-2 px-3 rounded-lg">
+                          <div className="flex items-center">
+                            <Users className="h-4 w-4 text-primary mr-1" />
+                            <span className="font-medium">{game.reservationCount || 0}</span>
+                            <span className="text-xs text-gray-500 ml-1">
+                              / {game.maxPlayers || 10} reserved
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="neumorphic-button w-full"
+                          onClick={() => navigate(`/games/${game.id}`)}
+                        >
+                          View Full Details
+                        </Button>
                       </div>
-                    </div>
-                  </div>
-                  
-                  {game.description && (
-                    <div className="text-sm text-gray-600 border-t border-gray-100 pt-3">
-                      {game.description}
                     </div>
                   )}
-                  
-                  <div className="neumorphic-inset flex items-center justify-between py-3 px-4 rounded-lg">
-                    <div className="flex items-center">
-                      <DollarSign className="h-4 w-4 text-green-600 mr-1" />
-                      <span className="font-medium">${game.buyInAmount.toString()}</span>
-                      <span className="text-xs text-gray-500 ml-1">buy-in</span>
-                    </div>
-                    
-                    <div className="flex items-center">
-                      <Users className="h-4 w-4 text-primary mr-1" />
-                      <span className="font-medium">{game.reservationCount || 0}</span>
-                      <span className="text-xs text-gray-500 ml-1">
-                        / {game.maxPlayers || 10} reserved
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="neumorphic-button"
-                      onClick={() => navigate(`/games/${game.id}`)}
-                    >
-                      View Details
-                    </Button>
-                    
-                    {game.hasReserved ? (
-                      <Badge className="bg-green-50 text-green-700 border-green-200">
-                        Spot Reserved
-                      </Badge>
-                    ) : reservingGameId === game.id ? (
-                      <div className="flex items-center">
-                        <span className="text-xs mr-2">Reserving...</span>
-                        <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
-                      </div>
-                    ) : (
-                      <Button 
-                        size="sm"
-                        className="primary-action-button"
-                        onClick={() => handleReserveSpot(game.id, game.buyInAmount.toString())}
-                      >
-                        <PlusCircle className="h-4 w-4 mr-1" />
-                        Reserve Spot
-                      </Button>
-                    )}
-                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="neumorphic-card mb-6 p-6">

@@ -8,6 +8,17 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle,
+  DialogTrigger
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { 
   User, 
   Wallet, 
   CreditCard, 
@@ -39,6 +50,11 @@ export default function ProfilePage() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
+  
+  // Add new friend state
+  const [isAddingFriend, setIsAddingFriend] = useState(false);
+  const [friendUsername, setFriendUsername] = useState("");
+  const [searchResults, setSearchResults] = useState<{id: string, username: string}[]>([]);
   
   // Check if we're viewing someone else's profile
   const isViewingFriend = Boolean(match && params && params.userId);
@@ -128,6 +144,53 @@ export default function ProfilePage() {
       });
       setIsLoggingOut(false);
       navigate("/auth");
+    }, 1000);
+  };
+  
+  // Search for users by username (simulated)
+  const searchUsers = (query: string) => {
+    // Example users for mock search results
+    const mockUsers = [
+      { id: "user-1", username: "Alex Smith" },
+      { id: "user-2", username: "Bobby Johnson" },
+      { id: "user-3", username: "Christina Lee" },
+      { id: "user-4", username: "David Wilson" },
+      { id: "user-5", username: "Emma Brown" },
+    ];
+    
+    if (query.trim() === "") {
+      setSearchResults([]);
+      return;
+    }
+    
+    // Filter users based on query
+    const filteredUsers = mockUsers.filter(user => 
+      user.username.toLowerCase().includes(query.toLowerCase()) &&
+      // Don't include users who are already friends
+      !friends.some(friend => friend.id === user.id)
+    );
+    
+    setSearchResults(filteredUsers);
+  };
+  
+  // Add new friend (simulated)
+  const addFriend = (userId: string, username: string) => {
+    setIsAddingFriend(true);
+    
+    // Simulate adding friend
+    setTimeout(() => {
+      // Add the new friend to the friends list
+      friends.push({ id: userId, username, status: "offline" });
+      
+      toast({
+        title: "Friend added",
+        description: `${username} has been added to your friends list.`,
+      });
+      
+      // Reset form and close dialog
+      setFriendUsername("");
+      setSearchResults([]);
+      setIsAddingFriend(false);
     }, 1000);
   };
 
@@ -465,10 +528,96 @@ export default function ProfilePage() {
               
               {!isViewingFriend && (
                 <div className="mt-6 pt-4 border-t">
-                  <Button variant="outline" className="w-full neumorphic-button">
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Add New Friend
-                  </Button>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full neumorphic-button">
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Add New Friend
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                      <DialogHeader>
+                        <DialogTitle>Add a new friend</DialogTitle>
+                        <DialogDescription>
+                          Search for other players by their username.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="username" className="text-right">
+                            Username
+                          </Label>
+                          <div className="col-span-3">
+                            <Input
+                              id="username"
+                              value={friendUsername}
+                              onChange={(e) => {
+                                setFriendUsername(e.target.value);
+                                searchUsers(e.target.value);
+                              }}
+                              placeholder="Search by username"
+                              className="w-full"
+                            />
+                          </div>
+                        </div>
+                        
+                        {/* Search Results */}
+                        {searchResults.length > 0 && (
+                          <div className="mt-2">
+                            <h4 className="text-sm font-medium mb-2">Search Results</h4>
+                            <div className="neumorphic-inset rounded-xl overflow-hidden">
+                              <div className="max-h-[150px] overflow-y-auto p-2">
+                                {searchResults.map((user) => (
+                                  <div 
+                                    key={user.id} 
+                                    className="flex items-center justify-between p-2 hover:bg-gray-50 rounded"
+                                  >
+                                    <div className="flex items-center">
+                                      <Avatar className="h-8 w-8 mr-2">
+                                        <AvatarFallback className="bg-primary/10 text-primary">
+                                          {user.username.charAt(0)}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <span>{user.username}</span>
+                                    </div>
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      className="neumorphic-button"
+                                      onClick={() => addFriend(user.id, user.username)}
+                                      disabled={isAddingFriend}
+                                    >
+                                      {isAddingFriend ? 
+                                        <span className="flex items-center">
+                                          <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full mr-1" />
+                                          Adding...
+                                        </span> : 
+                                        <span className="flex items-center">
+                                          <UserPlus className="h-3 w-3 mr-1" />
+                                          Add
+                                        </span>
+                                      }
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {friendUsername.trim() !== "" && searchResults.length === 0 && (
+                          <div className="col-span-4 text-center py-2 text-gray-500">
+                            No users found matching "{friendUsername}"
+                          </div>
+                        )}
+                      </div>
+                      <DialogFooter>
+                        <Button type="submit" className="primary-action-button">
+                          Done
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               )}
             </div>
